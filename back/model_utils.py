@@ -26,3 +26,5 @@ def predict_single_image(model, src, class_names, target_size=(224,224)):
         "label": label,
         "probs": {class_names[i]: float(p) for i, p in enumerate(probs)}
     }
+    # 이미지 여러개 평균값 함수 
+    # 시각화 - 3d

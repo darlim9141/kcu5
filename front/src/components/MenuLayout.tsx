@@ -47,10 +47,13 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
                     },
                 }}
                 PaperProps={{
-                    sx: {
+                    sx: (theme) => ({
+                        position: "absolute",
+                        top: { xs: theme.spacing(9), sm: theme.spacing(10) },
+                        bottom: theme.spacing(2),
                         ml: { xs: 1.5, sm: 2 },
-                        mt: 2, mb: 2, mr: 2,
-                        width: {xs: 220, sm: 260},
+                        mr: 2,
+                        width: { xs: 220, sm: 260 },
                         height: "auto",
                         maxHeight: "70vh",
                         borderRadius: 3,
@@ -61,7 +64,7 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
                         border: "1px solid rgba(255,255,255,0.25)",
                         backdropFilter: "blur(10px)",
                         WebkitBackdropFilter: "blur(10px)"
-                    }
+                    })
                 }}
             >
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>

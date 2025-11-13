@@ -1,5 +1,7 @@
 import { Box } from "@mui/material";
 import HTMLFlipBook from "react-pageflip";
+import Upload from "./Upload";
+import "../styles/flipbook.css"
 
 export default function Gallery() {
     return (
@@ -29,12 +31,13 @@ export default function Gallery() {
                 maxShadowOpacity={0.5}
                 showCover={false}
                 mobileScrollSupport
-                clickEventForward={false}
+                clickEventForward
                 useMouseEvents
                 swipeDistance={30}
                 showPageCorners
                 disableFlipByClick={false}
             >
+                <Upload />
                 <div className="demoPage">Page 1</div>
                 <div className="demoPage">Page 2</div>
                 <div className="demoPage">Page 3</div>

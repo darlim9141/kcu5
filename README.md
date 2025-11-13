@@ -1,11 +1,3 @@
-# kcu5
-kcu5
-
-
-https://drive.google.com/file/d/1SweK8omafSTuq-S1Xj5zFGu_OGiCyfAm/view?usp=sharing
-
-
-<<<<<<< HEAD
 # KCU5 – AI Outfit Styler
 
 사용자가 전신 사진을 업로드하면 스트릿, 캐주얼, 미니멀, 클래식 룩별 확률을 계산해 보여주는 AI/머신러닝 기반 패션 진단 서비스입니다. VGG 계열 분류 모델과 K-means 기반 스타일 맵을 결합해 보정된 확률, 군집 위치, 3D 임베딩 등을 제공하는 것을 목표로 합니다.
@@ -101,12 +93,3 @@ npm run dev  # 기본 포트: http://localhost:5173
 2. 프런트엔드 UI 연결: 업로드 컴포넌트, 결과 그래프, 온보딩 페이지 구현(`features/onboarding`).
 3. 모델 배포용 경량화: SavedModel/TF Lite 변환 및 추론 속도 개선.
 4. 데이터 확장과 검증: 스타일 라벨 품질 재검토, 추가 클래스(아메카지 등) 실험.
-
-기여나 문의 사항은 이 저장소 이슈를 통해 편하게 남겨주세요.
-=======
-# kcu5
-kcu5
-
-
-https://drive.google.com/file/d/1SweK8omafSTuq-S1Xj5zFGu_OGiCyfAm/view?usp=sharing
->>>>>>> b8f737c01d828fd92aaa27ef6d84bbe58ff53dea

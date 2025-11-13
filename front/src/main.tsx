@@ -7,6 +7,9 @@ import App from "./App";
 
 const theme = createTheme({
   typography: { fontFamily: `system-ui, -apple-system, "Noto Sans KR", sans-serif` },
+  palette: { 
+    background: { default: "#ECE6E6" } 
+  }
 });
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

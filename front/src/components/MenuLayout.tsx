@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Settings, Image, Instagram, GitHub, CloseRounded, MenuRounded } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+export default function MenuLayout({ children }: { children: React.ReactNode }) {
     const [open, setOpen] = useState(false);
 
     return (
@@ -22,8 +22,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                             position: "relative",
                             zIndex: (t) => t.zIndex.drawer + 2,
                             width: 44, height: 44, borderRadius: "50%",
-                            bgcolor: "rgba(255,255,255,0.18)",
-                            border: "1px solid rgba(255,255,255,0.35)",
+                            bgcolor: "rgba(255, 255, 255, 0.5)",
+                            border: "1px solid rgba(255, 255, 255, 0.2)",
                             backdropFilter: "blur(10px)",
                             WebkitBackdropFilter: "blur(10px)",
                             // boxShadow: "0 8px 24px rgba(0,0,0,.25)",
@@ -54,6 +54,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         height: "auto",
                         maxHeight: "70vh",
                         borderRadius: 3,
+                        paddingTop: "100px",
                         p: 1.5,
                         color: "#fff",
                         background: "rgba(255,255,255,0.12)",

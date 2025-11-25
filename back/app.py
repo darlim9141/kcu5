@@ -2,7 +2,12 @@ import os
 import json
 import pickle
 import io
+import base64
 import numpy as np
+from pillow_heif import register_heif_opener
+
+# Register HEIF opener
+register_heif_opener()
 from typing import List, Dict, Any
 from collections import Counter
 from contextlib import asynccontextmanager
@@ -216,6 +221,36 @@ async def predict_single(file: UploadFile = File(...)):
         return result
     except Exception as e:
         print(f"Error processing single image: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/convert/preview")
+async def convert_preview(file: UploadFile = File(...)):
+    """
+    Endpoint to generate a thumbnail preview for HEIC (and other) images.
+    Returns a base64 encoded JPEG string.
+    """
+    try:
+        contents = await file.read()
+        image = Image.open(io.BytesIO(contents))
+        
+        # Resize for thumbnail (e.g., max 500px) to save bandwidth
+        image.thumbnail((500, 500))
+        
+        # Convert to RGB (in case of RGBA or others)
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+            
+        # Save to buffer as JPEG
+        buffer = io.BytesIO()
+        image.save(buffer, format="JPEG", quality=70)
+        buffer.seek(0)
+        
+        # Encode to base64
+        img_str = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        return {"preview": f"data:image/jpeg;base64,{img_str}"}
+        
+    except Exception as e:
+        print(f"Error generating preview: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/predict/batch")

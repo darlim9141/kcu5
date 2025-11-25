@@ -1,0 +1,10 @@
+.gallery-book {
+    width: 340px;
+    height: 500px;
+    /* max-width: 90vw;
+    max-height: 80vh; */
+}
+
+.gallery-book .demoPage {
+    background-color: #fff;
+}

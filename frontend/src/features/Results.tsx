@@ -1,5 +1,7 @@
-import { Box, Button, Card, CardContent, CardMedia, Stack, Typography } from "@mui/material";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Box, Button, Card, CardContent, CardMedia, Dialog, DialogContent, IconButton, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Close, ArrowBackIosNew, ArrowForwardIos } from "@mui/icons-material";
+import { useEffect, useState } from "react";
+import ClusterMap from "../components/ClusterMap";
 
 export interface AnalysisResult {
   id: string;
@@ -9,87 +11,163 @@ export interface AnalysisResult {
   description?: string;
 }
 
-interface LocationState {
-  results?: AnalysisResult[];
+interface ResultsModalProps {
+  open: boolean;
+  onClose: () => void;
+  onDelete?: (id: string) => void;
+  results: AnalysisResult[];
+  rawResults?: any[];
 }
 
-export default function Results() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const state = (location.state as LocationState | null) ?? {};
-  const results = state.results ?? [];
+export default function ResultsModal({ open, onClose, onDelete, results, rawResults }: ResultsModalProps) {
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
+  const [graphData, setGraphData] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  const handleBack = () => {
-    navigate("/gallery");
+  useEffect(() => {
+    if (open) {
+        setCurrentIndex(0);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    fetch('/web_graph_data.json')
+      .then(res => res.json())
+      .then(data => {
+        setGraphData(data);
+      })
+      .catch(err => console.error("Failed to load graph data:", err));
+  }, []);
+
+  const handleDelete = () => {
+    if (onDelete && results.length > 0) {
+        if (window.confirm("정말 이 결과를 삭제하시겠습니까?")) {
+            onDelete(results[currentIndex].id);
+        }
+    }
   };
 
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % results.length);
+  };
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => (prev - 1 + results.length) % results.length);
+  };
+
+  const currentResult = results[currentIndex];
+  const currentRawResult = rawResults ? rawResults[currentIndex] : null;
+
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 3,
-        p: { xs: 2, md: 4 },
-        minHeight: "100%",
+    <Dialog
+      fullScreen={fullScreen}
+      open={open}
+      onClose={onClose}
+      maxWidth="xl"
+      fullWidth
+      PaperProps={{
+        sx: {
+          minHeight: '80vh',
+          maxHeight: '90vh',
+        }
       }}
     >
-      <Stack direction="row" alignItems="center" justifyContent="space-between">
-        <Typography variant="h5" fontWeight={700}>
-          분석 결과
-        </Typography>
-        <Button variant="outlined" onClick={handleBack}>
-          갤러리로 돌아가기
-        </Button>
-      </Stack>
-
-      {results.length === 0 ? (
-        <Box
-          sx={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            textAlign: "center",
-          }}
-        >
-          <Typography color="text.secondary">
-            표시할 결과가 없습니다. 갤러리에서 이미지를 업로드해 주세요.
+      <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: 1, borderColor: 'divider' }}>
+          <Typography variant="h6" fontWeight={700}>
+            분석 결과 {results.length > 1 && `(${currentIndex + 1}/${results.length})`}
           </Typography>
+          <Box>
+            {onDelete && results.length > 0 && (
+                <Button color="error" onClick={handleDelete} sx={{ mr: 1 }}>
+                    삭제
+                </Button>
+            )}
+            <IconButton onClick={onClose}>
+                <Close />
+            </IconButton>
+          </Box>
         </Box>
-      ) : (
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
-            gap: 2,
-          }}
-        >
-          {results.map((item) => (
-            <Card key={item.id} sx={{ display: "flex", flexDirection: "column" }}>
-              <CardMedia
-                component="img"
-                height={220}
-                image={item.imageUrl}
-                alt={item.label}
-                sx={{ objectFit: "cover" }}
-              />
-              <CardContent>
-                <Typography variant="subtitle1" fontWeight={600}>
-                  {item.label}
+
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, flex: 1, overflow: 'hidden', position: 'relative' }}>
+          
+          {/* Navigation Arrows */}
+          {results.length > 1 && (
+            <>
+                <IconButton 
+                    onClick={handlePrev}
+                    sx={{ 
+                        position: 'absolute', 
+                        left: 10, 
+                        top: '50%', 
+                        transform: 'translateY(-50%)', 
+                        zIndex: 10,
+                        bgcolor: 'rgba(255,255,255,0.7)',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.9)' },
+                        boxShadow: 3
+                    }}
+                >
+                    <ArrowBackIosNew />
+                </IconButton>
+                <IconButton 
+                    onClick={handleNext}
+                    sx={{ 
+                        position: 'absolute', 
+                        right: { xs: 10, lg: 'calc(66.66% + 10px)' }, // Adjust based on layout
+                        top: '50%', 
+                        transform: 'translateY(-50%)', 
+                        zIndex: 10,
+                        bgcolor: 'rgba(255,255,255,0.7)',
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.9)' },
+                        boxShadow: 3
+                    }}
+                >
+                    <ArrowForwardIos />
+                </IconButton>
+            </>
+          )}
+
+          {/* Left Side: Results List */}
+          <Box sx={{ flex: 1, p: 3, overflowY: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            {!currentResult ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                <Typography color="text.secondary">
+                  결과를 불러오는 중이거나 데이터가 없습니다.
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  신뢰도: {(item.confidence * 100).toFixed(1)}%
-                </Typography>
-                {item.description && (
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    {item.description}
+              </Box>
+            ) : (
+              <Card key={currentResult.id} elevation={3} sx={{ width: '100%', maxWidth: 500 }}>
+                <CardMedia
+                  component="img"
+                  height={400}
+                  image={currentResult.imageUrl}
+                  alt={currentResult.label}
+                  sx={{ objectFit: "contain", bgcolor: '#f5f5f5' }}
+                />
+                <CardContent>
+                  <Typography variant="h5" fontWeight={700} gutterBottom>
+                    {currentResult.label}
                   </Typography>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                  <Typography variant="h6" color="primary">
+                    신뢰도: {(currentResult.confidence * 100).toFixed(1)}%
+                  </Typography>
+                  {currentResult.description && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      {currentResult.description}
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </Box>
+
+          {/* Right Side: 3D Cluster Map */}
+          <Box sx={{ flex: 2, borderLeft: { lg: 1 }, borderColor: 'divider', minHeight: '500px', position: 'relative' }}>
+             <ClusterMap graphData={graphData} result={currentRawResult} />
+          </Box>
         </Box>
-      )}
-    </Box>
+      </DialogContent>
+    </Dialog>
   );
 }

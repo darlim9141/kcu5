@@ -1,4 +1,6 @@
-import { forwardRef, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { forwardRef, useImperativeHandle, useMemo, useRef, useState, type ChangeEvent } from "react";
+import axios from "axios";
+import { saveResult } from "../utils/storage";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -21,57 +23,120 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   },
 }));
 
-const MAX_FILES = 4;
+const MAX_FILES = 10;
 
-const Upload = forwardRef<HTMLDivElement>((_props, ref) => {
+export interface UploadHandle {
+  open: () => void;
+}
+
+interface UploadProps {
+  onComplete?: (results: any[], rawResults: any[]) => void;
+}
+
+const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
   const [open, setOpen] = useState(false);
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<{file: File, preview: string}[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
 
+  useImperativeHandle(ref, () => ({
+    open: () => {
+      setOpen(true);
+      setError(null);
+    }
+  }));
+
+
+
+// ... existing imports
+
   const remainingSlots = useMemo(() => MAX_FILES - images.length, [images.length]);
 
-  const readFileAsDataURL = (file: File) =>
-    new Promise<string>((resolve, reject) => {
+  const getFilePreview = async (file: File): Promise<{file: File, preview: string}> => {
+    // Check if file is HEIC
+    if (file.type === "image/heic" || file.type === "image/heif" || file.name.toLowerCase().endsWith(".heic")) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        
+        const response = await axios.post("http://localhost:8000/convert/preview", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
+        
+        return { file, preview: response.data.preview };
+      } catch (e) {
+        console.error("Preview generation failed:", e);
+        // Fallback or error? Let's show error for now.
+        throw new Error("이미지 미리보기를 불러오지 못했습니다.");
+      }
+    }
+
+    // For other images, use local FileReader
+    return new Promise<{file: File, preview: string}>((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
+      reader.onload = () => resolve({ file, preview: reader.result as string });
       reader.onerror = () => reject(new Error("Failed to read file"));
       reader.readAsDataURL(file);
     });
-
-  const handleClickOpen = () => {
-    setOpen(true);
-    setError(null);
   };
+
   const handleClose = () => {
     setOpen(false);
     setError(null);
+  };
+
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const fileList = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.heic'));
+    
+    if (!fileList.length) return;
+    
+    processFiles(fileList);
+  };
+
+  const processFiles = async (fileList: File[]) => {
+    if (remainingSlots <= 0) {
+      setError(`최대 ${MAX_FILES}장까지 업로드할 수 있어요.`);
+      return;
+    }
+
+    const usableFiles = fileList.slice(0, remainingSlots);
+    if (usableFiles.length < fileList.length) {
+      setError(`한 번에 최대 ${MAX_FILES}장까지만 저장돼요.`);
+    } else {
+      setError(null);
+    }
+
+    try {
+      const nextImages = await Promise.all(usableFiles.map(getFilePreview));
+      setImages((prev) => [...prev, ...nextImages]);
+    } catch (e) {
+        console.error(e);
+      setError("파일을 처리하는 중 문제가 발생했습니다.");
+    }
   };
 
   const handleFilesSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const fileList = event.target.files ? Array.from(event.target.files) : [];
     event.target.value = "";
     if (!fileList.length) return;
-    if (remainingSlots <= 0) {
-      setError("최대 4장까지 업로드할 수 있어요.");
-      return;
-    }
-
-    const usableFiles = fileList.slice(0, remainingSlots);
-    if (usableFiles.length < fileList.length) {
-      setError("한 번에 최대 4장까지만 저장돼요.");
-    } else {
-      setError(null);
-    }
-
-    try {
-      const nextImages = await Promise.all(usableFiles.map(readFileAsDataURL));
-      setImages((prev) => [...prev, ...nextImages]);
-    } catch {
-      setError("파일을 읽어오지 못했어요. 다시 시도해 주세요.");
-    }
+    processFiles(fileList);
   };
 
   const handleRemoveImage = (index: number) => {
@@ -87,37 +152,69 @@ const Upload = forwardRef<HTMLDivElement>((_props, ref) => {
     setError(null);
 
     const formData = new FormData();
-    images.forEach((src, index) => {
-      const file = dataUrlToFile(src, `photo-${index + 1}.png`);
-      formData.append("files", file);
+    
+    // Convert all base64 images to files and append to formData
+    images.forEach((item, index) => {
+        // Use the original file stored in the state
+        if (images.length === 1) {
+            formData.append("file", item.file);
+        } else {
+            formData.append("files", item.file);
+        }
     });
 
     try {
-      // TODO: Connect to backend API once available.
-      // 예시) FastAPI 엔드포인트로 FormData 전달
-      /*
-      const response = await fetch("http://localhost:8000/api/analyze", {
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok) {
-        throw new Error("이미지를 업로드하지 못했습니다.");
-      }
-      const resultPayload = await response.json();
-      navigate("/results", { state: { results: resultPayload } });
-      */
+      let formattedResults: any[] = [];
+      let rawResults: any[] = [];
 
-      // 임시: 선택된 이미지를 그대로 넘겨서 Results에서 확인.
-      const mockedResults = images.map((src, index) => ({
-        id: `temp-${index}`,
-        imageUrl: src,
-        label: "분석 대기",
-        confidence: 0,
-      }));
-      navigate("/results", { state: { results: mockedResults } });
+      if (images.length === 1) {
+          const response = await axios.post("http://localhost:8000/predict/single", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+          const analysisResult = response.data;
+          const formatted = {
+            id: crypto.randomUUID(),
+            imageUrl: images[0].preview, // Use the preview URL for display
+            label: analysisResult.classification.category,
+            confidence: analysisResult.classification.confidence / 100, 
+            timestamp: new Date().toISOString(),
+            rawResult: analysisResult
+          };
+          formattedResults.push(formatted);
+          rawResults.push(analysisResult);
+      } else {
+          const response = await axios.post("http://localhost:8000/predict/batch", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+          const batchData = response.data;
+          
+          batchData.individual_results.forEach((res: any, index: number) => {
+              const formatted = {
+                id: crypto.randomUUID(),
+                imageUrl: images[index].preview, // Use the preview URL for display
+                label: res.classification.category,
+                confidence: res.classification.confidence / 100,
+                timestamp: new Date().toISOString(),
+                rawResult: res
+              };
+              formattedResults.push(formatted);
+              rawResults.push(res);
+          });
+      }
+
+      // Save all results
+      for (const result of formattedResults) {
+          await saveResult(result);
+      }
+
+      if (props.onComplete) {
+        props.onComplete(formattedResults, rawResults);
+      }
+      
       setImages([]);
       setOpen(false);
     } catch (uploadError) {
+      console.error(uploadError);
       setError(
         uploadError instanceof Error
           ? uploadError.message
@@ -129,10 +226,7 @@ const Upload = forwardRef<HTMLDivElement>((_props, ref) => {
   };
 
   return (
-    <div className="demoPage" ref={ref}>
-      <Button variant="outlined" onClick={handleClickOpen}>
-        Add Photo(s)
-      </Button>
+    <div className="demoPage">
       <BootstrapDialog
         onClose={handleClose}
         aria-labelledby="customized-dialog-title"
@@ -154,25 +248,42 @@ const Upload = forwardRef<HTMLDivElement>((_props, ref) => {
           <CloseIcon />
         </IconButton>
         <DialogContent dividers>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            hidden
-            onChange={handleFilesSelected}
-          />
-          <Button
-            variant="contained"
+          <Box
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            sx={{
+              border: '2px dashed',
+              borderColor: isDragging ? 'primary.main' : 'grey.300',
+              borderRadius: 2,
+              p: 4,
+              textAlign: 'center',
+              bgcolor: isDragging ? 'action.hover' : 'background.paper',
+              transition: 'all 0.2s',
+              cursor: 'pointer'
+            }}
             onClick={() => fileInputRef.current?.click()}
-            disabled={remainingSlots <= 0}
           >
-            {remainingSlots > 0
-              ? `이미지 선택 (최대 ${remainingSlots}장 추가 가능)`
-              : "최대 4장까지 저장됩니다"}
-          </Button>
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.heic"
+                multiple
+                hidden
+                onChange={handleFilesSelected}
+            />
+            <Typography variant="h6" color={isDragging ? 'primary' : 'text.primary'} gutterBottom>
+                {isDragging ? '여기에 놓아주세요!' : '이미지를 드래그하거나 클릭하여 선택하세요'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+                {remainingSlots > 0
+                ? `최대 ${remainingSlots}장 더 추가 가능`
+                : "최대 개수에 도달했습니다"}
+            </Typography>
+          </Box>
+
           {error && (
-            <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+            <Typography color="error" variant="body2" sx={{ mt: 2, textAlign: 'center' }}>
               {error}
             </Typography>
           )}
@@ -193,9 +304,9 @@ const Upload = forwardRef<HTMLDivElement>((_props, ref) => {
                 아직 업로드된 이미지가 없어요.
               </Typography>
             )}
-            {images.map((src, index) => (
+            {images.map((item, index) => (
               <Box
-                key={`${src}-${index}`}
+                key={`${item.preview}-${index}`}
                 sx={{
                   position: "relative",
                   borderRadius: 1,
@@ -204,7 +315,7 @@ const Upload = forwardRef<HTMLDivElement>((_props, ref) => {
                 }}
               >
                 <img
-                  src={src}
+                  src={item.preview}
                   alt={`Uploaded ${index + 1}`}
                   style={{
                     width: "100%",
@@ -253,15 +364,4 @@ const Upload = forwardRef<HTMLDivElement>((_props, ref) => {
 
 export default Upload;
 
-function dataUrlToFile(dataUrl: string, filename: string) {
-  const arr = dataUrl.split(",");
-  const mimeMatch = arr[0]?.match(/:(.*?);/);
-  const mime = mimeMatch ? mimeMatch[1] : "image/png";
-  const bstr = atob(arr[1] ?? "");
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
-  }
-  return new File([u8arr], filename, { type: mime });
-}
+

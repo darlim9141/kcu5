@@ -31,7 +31,7 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
                     >
                         {open ? <CloseRounded/> : <MenuRounded/>}
                     </IconButton>
-                    <Typography sx={{ ml: 1, fontWeight: 800 }}>T</Typography>
+                    <Typography sx={{ ml: 2, fontWeight: 1000 }}>모입</Typography>
                 </Toolbar>
             </AppBar>
 

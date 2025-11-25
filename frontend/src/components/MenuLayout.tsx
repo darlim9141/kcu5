@@ -91,8 +91,8 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
                     </Box>
                     <Divider />
                     <Box sx={{ display: "flex", gap: 1.5, p:2 }}>
-                        <MLink href="#" color="#666666ff" underline="none"><Instagram /></MLink>
-                        <MLink href="#" color="#666666ff" underline="none"><GitHub /></MLink>
+                        <MLink href="https://www.instagram.com/kcu_madison/" target="_blank" color="#666666ff" underline="none"><Instagram /></MLink>
+                        <MLink href="https://github.com/darlim9141/kcu5" target="_blank" color="#666666ff" underline="none"><GitHub /></MLink>
                     </Box>
                 </Box>
             </Drawer>      

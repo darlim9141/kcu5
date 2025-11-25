@@ -1,220 +1,255 @@
-# === 1. Imports ===
 import os
 import json
+import pickle
+import io
 import numpy as np
-import joblib  # K-means 모델(.pkl) 로드를 위해 필요
-from PIL import Image
-import io  # 이미지 스트림 처리를 위해 필요
-from flask import Flask, request, jsonify, g
-from flask_cors import CORS
-from tensorflow.keras.models import load_model
-from collections import Counter  # 배치 요약 기능에 필요
+from typing import List, Dict, Any
+from collections import Counter
+from contextlib import asynccontextmanager
 
-# === 2. Model & Preprocessing Functions ===
+# Image processing libraries
+from PIL import Image
+from rembg import remove
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+
+# Machine Learning libraries
+import tensorflow as tf
+from tensorflow.keras.models import load_model, Model
+from tensorflow.keras.applications.resnet50 import preprocess_input
+from tensorflow.keras.preprocessing.image import img_to_array
+
+# === Configuration & Constants ===
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_DIR = os.path.join(BASE_DIR, 'models')
+
+# Global dictionary to store loaded models
+ai_models: Dict[str, Any] = {}
+
+# === Helper Functions ===
 
 def load_all_models():
     """
-    앱 시작 시 모든 모델을 로드하여 Flask의 'g' (global context) 객체에 저장합니다.
-    이 함수는 앱 실행 시 한 번만 호출됩니다.
+    Load all necessary AI models into memory during server startup.
+    This includes the ResNet50 classifier, feature extractor, PCA, and KMeans models.
+    """
+    print("Loading AI models...")
     
-    Input: 
-        - 없음 (서버 내의 'models/' 폴더 경로에서 직접 로드)
-    Output: 
-        - 없음 (대신 g.vgg_model, g.kmeans_model, g.class_names 등에 객체가 저장됨)
+    # 1. Load ResNet50 Classifier
+    model_path = os.path.join(MODEL_DIR, 'resnet50', 'model.keras')
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model file not found: {model_path}")
+        
+    full_model = load_model(model_path)
+    
+    # 2. Create Feature Extractor
+    # Extract the layer used for feature vectors (usually GlobalAveragePooling2D)
+    try:
+        feature_layer = full_model.get_layer('avg_pool')
+    except ValueError:
+        # Fallback to the third-to-last layer if 'avg_pool' is not named explicitly
+        feature_layer = full_model.layers[-3]
+        
+    feature_extractor = Model(inputs=full_model.input, outputs=feature_layer.output)
+    
+    ai_models['classifier'] = full_model
+    ai_models['feature_extractor'] = feature_extractor
+    
+    # 3. Load Scikit-Learn Models (PCA & KMeans)
+    pca_path = os.path.join(MODEL_DIR, 'resnet50', 'pca_model.pkl')
+    kmeans_path = os.path.join(MODEL_DIR, 'resnet50', 'kmeans_model.pkl')
+    
+    with open(pca_path, 'rb') as f:
+        ai_models['pca'] = pickle.load(f)
+    with open(kmeans_path, 'rb') as f:
+        ai_models['kmeans'] = pickle.load(f)
+        
+    # 4. Load Class Names
+    class_path = os.path.join(MODEL_DIR, 'resnet50', 'class_names.json')
+    with open(class_path, 'r') as f:
+        ai_models['class_names'] = json.load(f)
+        
+    print("All models loaded successfully.")
+
+def process_image(image_bytes: bytes) -> np.ndarray:
+    """
+    Process the input image bytes:
+    1. Remove background using rembg.
+    2. Resize to 224x224 (ResNet50 input size).
+    3. Convert to Numpy array and apply preprocessing.
+    """
+    # Convert bytes to PIL Image
+    image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+    
+    # Remove background
+    image_no_bg = remove(image)
+    image_rgb = image_no_bg.convert('RGB') # Convert transparent background to black/white
+    
+    # Resize
+    target_size = (224, 224)
+    image_resized = image_rgb.resize(target_size)
+    
+    # Convert to array and preprocess
+    img_array = img_to_array(image_resized)
+    img_array = np.expand_dims(img_array, axis=0) # Shape: (1, 224, 224, 3)
+    img_processed = preprocess_input(img_array)
+    
+    return img_processed
+
+def analyze_single_image(img_processed: np.ndarray) -> Dict[str, Any]:
+    """
+    Perform inference on a single processed image.
+    Returns classification result, 3D coordinates, and cluster ID.
+    """
+    # 1. Classification
+    probs = ai_models['classifier'].predict(img_processed, verbose=0)
+    class_idx = np.argmax(probs[0])
+    class_name = ai_models['class_names'][class_idx]
+    confidence = float(probs[0][class_idx])
+    
+    # 2. Feature Extraction
+    # Keras returns float32 by default
+    features_raw = ai_models['feature_extractor'].predict(img_processed, verbose=0)
+    
+    # Ensure data type is float64 and contiguous for Scikit-Learn compatibility (Critical for macOS)
+    features = np.ascontiguousarray(features_raw, dtype=np.float64)
+    
+    # 3. PCA Transformation (High dim -> 3D)
+    pca_result_raw = ai_models['pca'].transform(features)
+    pca_result = np.ascontiguousarray(pca_result_raw, dtype=np.float64)
+    pca_coord = pca_result[0]
+    
+    # 4. KMeans Clustering
+    cluster_id = ai_models['kmeans'].predict(pca_result)[0]
+    
+    return {
+        "classification": {
+            "category": class_name,
+            "confidence": round(confidence * 100, 2)
+        },
+        "kmeans": {
+            "cluster_id": int(cluster_id),
+            "coordinates": {
+                "x": float(pca_coord[0]),
+                "y": float(pca_coord[1]),
+                "z": float(pca_coord[2])
+            }
+        }
+    }
+
+def summarize_batch_results(results_list: List[Dict]) -> Dict[str, Any]:
+    """
+    Summarize analysis results from multiple images.
+    Returns the dominant style and average confidence.
+    """
+    if not results_list:
+        return {}
+        
+    categories = [r['classification']['category'] for r in results_list]
+    confidences = [r['classification']['confidence'] for r in results_list]
+    
+    # Find most common category
+    count_data = Counter(categories)
+    most_common = count_data.most_common(1)[0]
+    
+    return {
+        "total_images": len(results_list),
+        "dominant_style": most_common[0],
+        "style_count": most_common[1],
+        "avg_confidence": round(np.mean(confidences), 2),
+        "style_breakdown": dict(count_data)
+    }
+
+# === FastAPI Application Setup ===
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Manage application lifecycle.
+    Load models before the server starts accepting requests.
     """
     try:
-        # # 예시 로직 (경로는 실제에 맞게 수정 필요)
-        # model_path = os.path.join('models', 'vgg16', 'model.keras') # 또는 'vgg16_model.h5'
-        # kmeans_path = os.path.join('models', 'kmeans', 'kmeans_model.pkl')
-        # feature_extractor_path = os.path.join('models', 'vgg16', 'feature_extractor.h5') # K-means용 특징 추출기
-        # pca_path = os.path.join('models', 'kmeans', 'pca_3d.pkl') # 3D 좌표 변환기
-        
-        # # g 객체에 모델 저장
-        # g.vgg_model = load_model(model_path)
-        # g.kmeans_model = joblib.load(kmeans_path)
-        # g.feature_extractor = load_model(feature_extractor_path)
-        # g.pca_model = joblib.load(pca_path)
-        
-        # # 클래스 이름 (노트북 기반)
-        # g.class_names = ['amekaji', 'casual', 'minimal', 'street']
-        
-        print(" * All models loaded and stored in 'g' context.")
-        pass # <--- 여기에 실제 모델 로드 코드 구현
-    
-    except Exception as e:
-        print(f"ERROR: Failed to load models: {e}")
-        pass
-
-def preprocess_image_for_classification(image_file_storage):
-    """
-    Flask의 FileStorage 객체를 VGG16 분류 모델 입력에 맞게 전처리합니다.
-    (work_space.ipynb의 ImageDataGenerator(rescale=1./255) 로직 재현)
-    
-    Input: 
-        - image_file_storage (werkzeug.FileStorage): request.files['image']로 받은 원본 이미지
-    Output: 
-        - np.array: (1, 224, 224, 3) 형태의 정규화된 Numpy 배열
-    """
-    # # 예시 로직
-    # img = Image.open(image_file_storage.stream).convert('RGB')
-    # img = img.resize((224, 224))
-    # img_array = np.array(img)
-    # img_array = img_array / 255.0  # work_space.ipynb의 rescale=1./255
-    # img_batch = np.expand_dims(img_array, axis=0)
-    # return img_batch
-    pass # <--- 여기에 PIL과 Numpy를 사용한 전처리 코드 구현
-
-def get_classification_prediction(image_batch):
-    """
-    전처리된 이미지 배치를 VGG16 모델에 넣어 예측 결과를 반환합니다.
-
-    Input: 
-        - image_batch (np.array): (1, 224, 224, 3) 형태의 Numpy 배열
-    Output: 
-        - dict: {"category": "casual", "confidence": 0.85} 형태의 딕셔너리
-    """
-    # # 예시 로직
-    # model = g.get('vgg_model')
-    # class_names = g.get('class_names')
-    
-    # probs = model.predict(image_batch)[0]
-    # pred_index = np.argmax(probs)
-    # category = class_names[pred_index]
-    # confidence = float(probs[pred_index])
-    
-    # return {"category": category, "confidence": confidence}
-    pass # <--- 여기에 model.predict() 및 후처리 코드 구현
-
-def extract_features_for_kmeans(image_batch):
-    """
-    전처리된 이미지 배치를 K-means용 특징 추출기 모델에 넣어 특징 벡터를 반환합니다.
-    (K-means 학습 시 사용한 전처리/특징추출 모델과 동일해야 함)
-
-    Input: 
-        - image_batch (np.array): (1, 224, 224, 3) 형태의 Numpy 배열
-    Output: 
-        - np.array: (1, N) 형태의 1D 특징 벡터 (예: (1, 4096))
-    """
-    # # 예시 로직
-    # # K-means용 전처리가 VGG16 분류와 다를 경우, 여기서 별도 전처리 필요
-    # extractor = g.get('feature_extractor')
-    # features = extractor.predict(image_batch)
-    # return features
-    pass # <--- 여기에 특징 추출 코드 구현
-
-def get_kmeans_location(feature_vector):
-    """
-    추출된 특징 벡터를 K-means와 PCA 모델에 넣어 클러스터 ID와 3D 좌표를 반환합니다.
-
-    Input: 
-        - feature_vector (np.array): (1, N) 형태의 1D 특징 벡터
-    Output: 
-        - dict: {"cluster_id": 2, "coordinates_3d": [10.1, -5.5, 3.2]} 형태의 딕셔너리
-    """
-    # # 예시 로직
-    # kmeans = g.get('kmeans_model')
-    # pca = g.get('pca_model')
-    
-    # cluster_id = kmeans.predict(feature_vector)[0]
-    # coordinates_3d = pca.transform(feature_vector)[0]
-    
-    # return {"cluster_id": int(cluster_id), "coordinates_3d": coordinates_3d.tolist()}
-    pass # <--- 여기에 K-means, PCA 예측 코드 구현
-
-def summarize_batch_results(results_list):
-    """
-    배치 예측(분류) 결과 리스트를 받아 요약 정보를 생성합니다.
-
-    Input: 
-        - results_list (list): [{"category": "casual", "confidence": 0.8}, ...] 형태의 딕셔너리 리스트
-    Output: 
-        - dict: {"most_common_category": "casual", "count": 2, "average_confidence": 0.78} 형태의 딕셔너리
-    """
-    # # 예시 로직
-    # categories = [r['category'] for r in results_list]
-    # confidences = [r['confidence'] for r in results_list]
-    # if not categories:
-    #     return {"most_common_category": "N/A", "count": 0, "average_confidence": 0.0}
-    
-    # most_common = Counter(categories).most_common(1)[0]
-    # avg_confidence = np.mean(confidences)
-    
-    # return {
-    #     "most_common_category": most_common[0],
-    #     "count": most_common[1],
-    #     "average_confidence": float(avg_confidence)
-    # }
-    pass # <--- 여기에 리스트 요약 로직 구현
-
-
-# === 3. Flask App Factory & API Routes ===
-# API 엔드포인트를 정의하고 위 함수들을 '조립'합니다.
-
-def create_app():
-    """
-    Flask 앱 인스턴스를 생성하고, API 라우트를 설정합니다.
-    """
-    app = Flask(__name__)
-    
-    # React 앱과의 통신을 위해 CORS 설정 (포트는 React 포트에 맞게 수정)
-    CORS(app, resources={r"/predict/*": {"origins": ["http://localhost:3000", "http://localhost:5173"]}})
-
-    with app.app_context():
-        # 앱 컨텍스트 내에서 모델 로드 함수를 호출합니다.
         load_all_models()
+    except Exception as e:
+        print(f"Error loading models: {e}")
+        raise e
+    yield
+    # Cleanup resources on shutdown (if needed)
+    ai_models.clear()
 
-    @app.route('/predict/single', methods=['POST'])
-    def predict_single():
-        """
-        API: 단일 이미지를 받아 [스타일 분류]와 [K-means 위치]를 반환합니다.
+app = FastAPI(lifespan=lifespan)
+
+# CORS Configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Allow all origins for development
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# === API Endpoints ===
+
+@app.get("/")
+def read_root():
+    """Health check endpoint."""
+    return {"status": "ok", "message": "Fashion Analysis AI Server is running."}
+
+@app.post("/predict/single")
+async def predict_single(file: UploadFile = File(...)):
+    """
+    Endpoint for single image analysis.
+    """
+    try:
+        contents = await file.read()
+        processed_img = process_image(contents)
+        result = analyze_single_image(processed_img)
+        return result
+    except Exception as e:
+        print(f"Error processing single image: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/predict/batch")
+async def predict_batch(files: List[UploadFile] = File(...)):
+    """
+    Endpoint for batch image analysis.
+    Returns individual results and a summary.
+    """
+    individual_results = []
+    
+    try:
+        for file in files:
+            contents = await file.read()
+            processed_img = process_image(contents)
+            
+            result = analyze_single_image(processed_img)
+            result['filename'] = file.filename
+            individual_results.append(result)
+            
+        summary = summarize_batch_results(individual_results)
         
-        Input (form-data): 
-            - 'image': 이미지 파일 1장
-        Output (JSON): 
-            - {
-                "classification": {"category": "casual", "confidence": 0.85},
-                "kmeans": {"cluster_id": 2, "coordinates_3d": [10.1, -5.5, 3.2]}
-              }
-        """
-        # --- 아래 함수들을 호출하여 API 로직 완성 ---
-        # 1. 파일 수신 (request.files)
-        # 2. preprocess_image_for_classification() 호출
-        # 3. get_classification_prediction() 호출
-        # 4. 파일 포인터 리셋 (file.stream.seek(0))
-        # 5. extract_features_for_kmeans() 호출 (필요시 별도 전처리)
-        # 6. get_kmeans_location() 호출
-        # 7. 결과 조합하여 jsonify()로 반환
-        pass 
-
-    @app.route('/predict/batch', methods=['POST'])
-    def predict_batch():
-        """
-        API: 여러 장의 이미지를 받아 [개별 분류 결과]와 [요약 정보]를 반환합니다.
+        return {
+            "summary": summary,
+            "individual_results": individual_results
+        }
         
-        Input (form-data): 
-            - 'images': 이미지 파일 리스트 (여러 장)
-        Output (JSON): 
-            - {
-                "individual_results": [
-                    {"filename": "img1.jpg", "classification": {"category": "casual", ...}},
-                    {"filename": "img2.jpg", "classification": {"category": "street", ...}}
-                ],
-                "summary": { ... }
-              }
-        """
-        # --- [팀원 작업] 아래 함수들을 호출하여 API 로직 완성 ---
-        # 1. 파일 리스트 수신 (request.files.getlist)
-        # 2. for 루프로 각 파일을 처리:
-        #    - preprocess_image_for_classification() 호출
-        #    - get_classification_prediction() 호출
-        #    - 개별 결과 리스트에 저장
-        # 3. summarize_batch_results() 호출
-        # 4. 결과 조합하여 jsonify()로 반환
-        pass
+    except Exception as e:
+        print(f"Error processing batch: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-    return app
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
 
-# === 4. App Execution ===
-if __name__ == '__main__':
-    app = create_app()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+
+# [1. 라이브러리 임포트]
+#   ↓
+#[2. 설정 및 전역 변수] (경로 설정, 모델 담을 변수 등)
+#   ↓
+#[3. 핵심 로직 함수들] (배경 제거, 모델 예측 등 순수 파이썬 함수)
+#   ↓
+#[4. Lifespan 정의] (모델 로딩 시점 정의)
+#   ↓
+#[5. 앱(app) 생성 및 CORS 설정]
+#   ↓
+#[6. API 엔드포인트(@app.get, @app.post)] (실제 접속 주소)

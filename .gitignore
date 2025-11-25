@@ -3,3 +3,7 @@
 /venv
 /models
 models.zip
+cnn/venv
+back/models/kmeans_model.pkl
+back/models/model.keras
+back/models/pca_model.pkl

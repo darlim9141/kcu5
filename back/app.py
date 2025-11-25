@@ -103,9 +103,17 @@ def analyze_single_image(img_processed: np.ndarray) -> Dict[str, Any]:
     """
     # 1. Classification
     probs = ai_models['classifier'].predict(img_processed, verbose=0)
-    class_idx = np.argmax(probs[0])
+    probs_arr = probs[0]
+
+    class_idx = int(np.argmax(probs_arr))
     class_name = ai_models['class_names'][class_idx]
-    confidence = float(probs[0][class_idx])
+    confidence = float(probs_arr[class_idx])
+
+    # Build full probability map for all categories
+    all_confidences = {
+        ai_models['class_names'][i]: round(float(prob) * 100, 2)
+        for i, prob in enumerate(probs_arr)
+    }
     
     # 2. Feature Extraction
     # Keras returns float32 by default
@@ -125,7 +133,8 @@ def analyze_single_image(img_processed: np.ndarray) -> Dict[str, Any]:
     return {
         "classification": {
             "category": class_name,
-            "confidence": round(confidence * 100, 2)
+            "confidence": round(confidence * 100, 2),
+            "all_confidences": all_confidences
         },
         "kmeans": {
             "cluster_id": int(cluster_id),

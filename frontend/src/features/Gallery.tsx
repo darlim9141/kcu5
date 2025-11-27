@@ -1,11 +1,75 @@
-import { Box, useMediaQuery, useTheme } from "@mui/material";
+import { Box, useMediaQuery, useTheme, Typography } from "@mui/material";
 import { Add } from "@mui/icons-material";
 import HTMLFlipBook from "react-pageflip";
 import Upload, { type UploadHandle } from "./Upload";
 import "../styles/flipbook.css"
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, forwardRef } from "react";
 import { getResults, deleteResult, type StoredResult } from "../utils/storage";
 import ResultsModal, { type AnalysisResult } from "./Results";
+import paperTexture from "../assets/paper_texture.jpg";
+import spiralTexture from "../assets/spirals.jpg";
+
+interface PageProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+  number?: number;
+}
+
+const Page = forwardRef<HTMLDivElement, PageProps>((props, ref) => {
+  const { children, number, style, className, ...rest } = props;
+  const isEven = number ? number % 2 === 0 : false;
+  const spiralWidth = '25px'; // Reduced width
+
+  return (
+    <div 
+        className={`demoPage ${className || ''}`} 
+        style={style} 
+        ref={ref} 
+        {...rest}
+    >
+      <Box sx={{ 
+          position: "relative", 
+          height: "100%", 
+          p: 2,
+          // Add padding to content to avoid spiral overlap
+          [isEven ? 'pl' : 'pr']: `calc(16px + ${spiralWidth})` 
+      }}>
+        {children}
+      </Box>
+      {/* Texture Overlay */}
+      <div 
+        style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundImage: `url(${paperTexture})`,
+            backgroundSize: 'cover',
+            mixBlendMode: 'multiply',
+            pointerEvents: 'none',
+            opacity: 0.5,
+            zIndex: 2
+        }}
+      />
+      {/* Spiral Binding Overlay */}
+      <div
+        style={{
+            position: 'absolute',
+            top: 0,
+            [isEven ? 'left' : 'right']: 0,
+            width: spiralWidth,
+            height: '100%',
+            backgroundImage: `url(${spiralTexture})`,
+            backgroundSize: '100% 100%', // Stretch to fit the narrow width (effectively cropping/squashing slightly but maintaining look)
+            transform: isEven ? 'scaleX(-1)' : 'none',
+            zIndex: 20,
+            pointerEvents: 'none',
+            mixBlendMode: 'multiply' // Make white background transparent
+        }}
+      />
+    </div>
+  );
+});
 
 export default function Gallery() {
     const theme = useTheme();
@@ -119,18 +183,18 @@ export default function Gallery() {
                 className="gallery-book"
                 style={{}}
                 startPage={0}
-                size="stretch"
+                size="fixed"
                 width={800}
                 height={850}
-                minWidth={300}
-                maxWidth={1000}
-                minHeight={400}
-                maxHeight={1536}
+                minWidth={800}
+                maxWidth={800}
+                minHeight={850}
+                maxHeight={850}
                 drawShadow
                 flippingTime={900}
                 usePortrait={isMobile}
-                startZIndex={1}
-                autoSize
+                startZIndex={0}
+                autoSize={false}
                 maxShadowOpacity={0.5}
                 showCover={false}
                 mobileScrollSupport
@@ -141,7 +205,7 @@ export default function Gallery() {
                 disableFlipByClick={false}
             >
                 {Array.from({ length: pagesToRender }).map((_, pageIndex) => (
-                    <div className="demoPage" key={pageIndex}>
+                    <Page key={pageIndex} number={pageIndex + 1}>
                         <div className="grid-page">
                             {Array.from({ length: ITEMS_PER_PAGE }).map((_, itemIndex) => {
                                 const globalIndex = pageIndex * ITEMS_PER_PAGE + itemIndex;
@@ -183,7 +247,7 @@ export default function Gallery() {
                                                 </div>
                                             );
                                         } else {
-                                            // Photo Slot
+                                            // Photo Slot - Exclude from overlay by raising z-index
                                             content = (
                                                 <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
                                                     <img 
@@ -194,7 +258,7 @@ export default function Gallery() {
                                                 </div>
                                             );
                                             onClick = () => handleItemClick(item);
-                                            style = { cursor: 'pointer' };
+                                            style = { cursor: 'pointer', position: 'relative', zIndex: 10 };
                                         }
                                     } else {
                                         // Empty slot
@@ -214,7 +278,7 @@ export default function Gallery() {
                                 );
                             })}
                         </div>
-                    </div>
+                    </Page>
                 ))}
             </HTMLFlipBook>
         </Box>

@@ -2,6 +2,7 @@ import os
 import json
 import pickle
 import io
+import re
 import base64
 import numpy as np
 from pillow_heif import register_heif_opener
@@ -24,6 +25,12 @@ from tensorflow.keras.models import load_model, Model
 from tensorflow.keras.applications.resnet50 import preprocess_input
 from tensorflow.keras.preprocessing.image import img_to_array
 
+# Gemini
+import google.generativeai as genai
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+
 # === Configuration & Constants ===
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, 'models')
@@ -32,6 +39,53 @@ MODEL_DIR = os.path.join(BASE_DIR, 'models')
 ai_models: Dict[str, Any] = {}
 
 # === Helper Functions ===
+
+def get_brand_recommendations(style: str):
+    """
+    스타일별 브랜드 추천을 Gemini로 생성.
+    실패하거나 키가 없으면 빈 리스트 반환.
+    """
+    if not GEMINI_API_KEY:
+        return []
+    prompt = f"""
+    너는 패션 큐레이터야. 스타일: {style}.
+    한국/글로벌 브랜드 5개를 JSON 배열로만 응답해.
+    예: ["Brand1","Brand2","Brand3","Brand4","Brand5"]
+    """
+    try:
+        model = genai.GenerativeModel("models/gemini-2.5-flash")
+        resp = model.generate_content(prompt)
+        txt = resp.text or ""
+        m = re.search(r"\[.*\]", txt, re.S)
+        if m:
+            return json.loads(m.group(0))
+    except Exception as e:
+        print(f"Gemini recs failed: {e}")
+    return []
+
+def get_accessory_recommendations(style: str):
+    """
+    스타일별 악세사리 구매 링크(HTTPS) 5개를 Gemini로 생성.
+    실패하거나 키가 없으면 빈 리스트 반환.
+    """
+    if not GEMINI_API_KEY:
+        return []
+    prompt = f"""
+    너는 패션 큐레이터야. 스타일: {style}.
+    이 스타일과 잘 어울리는 악세사리 5개의 구매 링크만 HTTPS URL로 답해.
+    JSON 배열 형태로만 응답해.
+    예: ["https://brand.com/item1","https://brand.com/item2","https://brand.com/item3","https://brand.com/item4","https://brand.com/item5"]
+    """
+    try:
+        model = genai.GenerativeModel("models/gemini-2.5-flash")
+        resp = model.generate_content(prompt)
+        txt = resp.text or ""
+        m = re.search(r"\[.*\]", txt, re.S)
+        if m:
+            return json.loads(m.group(0))
+    except Exception as e:
+        print(f"Gemini accessories failed: {e}")
+    return []
 
 def load_all_models():
     """
@@ -218,6 +272,9 @@ async def predict_single(file: UploadFile = File(...)):
         contents = await file.read()
         processed_img = process_image(contents)
         result = analyze_single_image(processed_img)
+        style = result["classification"]["category"]
+        result["recommendations"] = get_brand_recommendations(style)
+        result["accessories"] = get_accessory_recommendations(style)
         return result
     except Exception as e:
         print(f"Error processing single image: {e}")
@@ -255,26 +312,31 @@ async def convert_preview(file: UploadFile = File(...)):
 
 @app.post("/predict/batch")
 async def predict_batch(files: List[UploadFile] = File(...)):
+    if not files:
+        raise HTTPException(status_code=400, detail="No files uploaded.")
     """
     Endpoint for batch image analysis.
     Returns individual results and a summary.
     """
     individual_results = []
-    
+    errors = []
     try:
         for file in files:
             contents = await file.read()
             processed_img = process_image(contents)
-            
             result = analyze_single_image(processed_img)
+            style = result["classification"]["category"]
+            result["recommendations"] = get_brand_recommendations(style)
+            result["accessories"] = get_accessory_recommendations(style)
             result['filename'] = file.filename
-            individual_results.append(result)
-            
+            individual_results.append(result)   
+
         summary = summarize_batch_results(individual_results)
         
         return {
             "summary": summary,
-            "individual_results": individual_results
+            "individual_results": individual_results,
+            "errors": errors
         }
         
     except Exception as e:
@@ -286,7 +348,7 @@ if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
 
 
-# [1. 라이브러리 임포트]
+#[1. 라이브러리 임포트]
 #   ↓
 #[2. 설정 및 전역 변수] (경로 설정, 모델 담을 변수 등)
 #   ↓

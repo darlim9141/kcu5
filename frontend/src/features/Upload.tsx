@@ -23,7 +23,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   },
 }));
 
-const MAX_FILES = 10;
+const MAX_FILES = 5;
 
 export interface UploadHandle {
   open: () => void;

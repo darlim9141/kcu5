@@ -9,6 +9,13 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
 import Typography from "@mui/material/Typography";
+import LinearProgress from "@mui/material/LinearProgress";
+import CircularProgress from "@mui/material/CircularProgress";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemAvatar from "@mui/material/ListItemAvatar";
+import ListItemText from "@mui/material/ListItemText";
+import Avatar from "@mui/material/Avatar";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -30,13 +37,17 @@ export interface UploadHandle {
 }
 
 interface UploadProps {
-  onComplete?: (results: any[], rawResults: any[]) => void;
+  onComplete?: () => void;
+  onResult?: (result: any, rawResult: any, index: number) => void;
+  onUploadStart?: (files: {file: File, preview: string}[]) => void;
+  onProgress?: (index: number, progress: number) => void;
 }
 
 const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
   const [open, setOpen] = useState(false);
   const [images, setImages] = useState<{file: File, preview: string}[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<number, number>>({});
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const navigate = useNavigate();
@@ -47,10 +58,6 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
       setError(null);
     }
   }));
-
-
-
-// ... existing imports
 
   const remainingSlots = useMemo(() => MAX_FILES - images.length, [images.length]);
 
@@ -110,6 +117,8 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
     processFiles(fileList);
   };
 
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const processFiles = async (fileList: File[]) => {
     if (remainingSlots <= 0) {
       setError(`최대 ${MAX_FILES}장까지 업로드할 수 있어요.`);
@@ -123,12 +132,15 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
       setError(null);
     }
 
+    setIsProcessing(true);
     try {
       const nextImages = await Promise.all(usableFiles.map(getFilePreview));
       setImages((prev) => [...prev, ...nextImages]);
     } catch (e) {
         console.error(e);
       setError("파일을 처리하는 중 문제가 발생했습니다.");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -148,80 +160,77 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
       setError("업로드할 이미지를 먼저 선택해 주세요.");
       return;
     }
+    
+    // Notify start and close dialog immediately
+    if (props.onUploadStart) {
+        props.onUploadStart(images);
+    }
+    setOpen(false); // Close the dialog immediately
+    
     setIsUploading(true);
+    setUploadProgress({});
     setError(null);
 
-    const formData = new FormData();
-    
-    // Convert all base64 images to files and append to formData
-    images.forEach((item, index) => {
-        // Use the original file stored in the state
-        if (images.length === 1) {
-            formData.append("file", item.file);
-        } else {
-            formData.append("files", item.file);
-        }
-    });
-
     try {
-      let formattedResults: any[] = [];
-      let rawResults: any[] = [];
+      const uploadPromises = images.map(async (item, index) => {
+        const formData = new FormData();
+        formData.append("file", item.file);
 
-      if (images.length === 1) {
-          const response = await axios.post("http://localhost:8000/predict/single", formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          });
-          const analysisResult = response.data;
-          const formatted = {
+        const response = await axios.post("http://localhost:8000/predict/single", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setUploadProgress((prev) => ({
+                ...prev,
+                [index]: percentCompleted,
+              }));
+              if (props.onProgress) {
+                  props.onProgress(index, percentCompleted);
+              }
+            }
+          },
+        });
+
+        const analysisResult = response.data;
+        const formattedResult = {
             id: crypto.randomUUID(),
-            imageUrl: images[0].preview, // Use the preview URL for display
+            imageUrl: item.preview,
             label: analysisResult.classification.category,
-            confidence: analysisResult.classification.confidence / 100, 
+            confidence: analysisResult.classification.confidence / 100,
             timestamp: new Date().toISOString(),
+            recommendations: analysisResult.recommendations,
+            accessories: analysisResult.accessories,
             rawResult: analysisResult
-          };
-          formattedResults.push(formatted);
-          rawResults.push(analysisResult);
-      } else {
-          const response = await axios.post("http://localhost:8000/predict/batch", formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          });
-          const batchData = response.data;
-          
-          batchData.individual_results.forEach((res: any, index: number) => {
-              const formatted = {
-                id: crypto.randomUUID(),
-                imageUrl: images[index].preview, // Use the preview URL for display
-                label: res.classification.category,
-                confidence: res.classification.confidence / 100,
-                timestamp: new Date().toISOString(),
-                rawResult: res
-              };
-              formattedResults.push(formatted);
-              rawResults.push(res);
-          });
-      }
+        };
 
-      // Save all results
-      for (const result of formattedResults) {
-          await saveResult(result);
-      }
+        // Save and notify immediately
+        await saveResult(formattedResult);
+        
+        if (props.onResult) {
+            props.onResult(formattedResult, analysisResult, index);
+        }
 
+        return {
+          formatted: formattedResult,
+          raw: analysisResult
+        };
+      });
+
+      await Promise.all(uploadPromises);
+      
       if (props.onComplete) {
-        props.onComplete(formattedResults, rawResults);
+        props.onComplete();
       }
       
       setImages([]);
-      setOpen(false);
     } catch (uploadError) {
       console.error(uploadError);
-      setError(
-        uploadError instanceof Error
-          ? uploadError.message
-          : "업로드 중 문제가 발생했습니다."
-      );
+      // Since dialog is closed, we might want to notify via a global snackbar or similar, 
+      // but for now we just log it. The individual items in Gallery will just hang or we need error handling there.
     } finally {
       setIsUploading(false);
+      setUploadProgress({});
     }
   };
 
@@ -231,6 +240,8 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
         onClose={handleClose}
         aria-labelledby="customized-dialog-title"
         open={open}
+        maxWidth="sm"
+        fullWidth
       >
         <DialogTitle sx={{ m: 0, p: 2 }} id="customized-dialog-title">
           Upload
@@ -260,10 +271,30 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
               textAlign: 'center',
               bgcolor: isDragging ? 'action.hover' : 'background.paper',
               transition: 'all 0.2s',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              mb: 2,
+              position: 'relative'
             }}
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => !isProcessing && fileInputRef.current?.click()}
           >
+            {isProcessing && (
+                <Box sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    bgcolor: 'rgba(255,255,255,0.8)',
+                    zIndex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'column'
+                }}>
+                    <CircularProgress size={40} />
+                    <Typography variant="caption" sx={{ mt: 1 }}>이미지 처리 중...</Typography>
+                </Box>
+            )}
             <input
                 ref={fileInputRef}
                 type="file"
@@ -271,6 +302,7 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
                 multiple
                 hidden
                 onChange={handleFilesSelected}
+                disabled={isProcessing}
             />
             <Typography variant="h6" color={isDragging ? 'primary' : 'text.primary'} gutterBottom>
                 {isDragging ? '여기에 놓아주세요!' : '이미지를 드래그하거나 클릭하여 선택하세요'}
@@ -287,63 +319,66 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
               {error}
             </Typography>
           )}
-          <Box
-            sx={{
-              mt: 2,
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))",
-              gap: 2,
-            }}
-          >
-            {images.length === 0 && (
-              <Typography
+
+          {images.length > 0 ? (
+            <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
+              {images.map((item, index) => (
+                <ListItem
+                  key={`${item.preview}-${index}`}
+                  secondaryAction={
+                    !isUploading && (
+                      <IconButton edge="end" aria-label="delete" onClick={() => handleRemoveImage(index)}>
+                        <DeleteOutlineIcon />
+                      </IconButton>
+                    )
+                  }
+                >
+                  <ListItemAvatar>
+                    <Avatar 
+                        src={item.preview} 
+                        variant="rounded" 
+                        sx={{ width: 56, height: 56, mr: 2 }}
+                    />
+                  </ListItemAvatar>
+                  <ListItemText
+                    primary={
+                        <Typography variant="subtitle2" noWrap sx={{ maxWidth: 200 }}>
+                            {item.file.name}
+                        </Typography>
+                    }
+                    secondary={
+                        <Box sx={{ width: '100%', mt: 1 }}>
+                            {isUploading ? (
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <Box sx={{ width: '100%', mr: 1 }}>
+                                        <LinearProgress variant="determinate" value={uploadProgress[index] || 0} />
+                                    </Box>
+                                    <Box sx={{ minWidth: 35 }}>
+                                        <Typography variant="body2" color="text.secondary">{`${Math.round(
+                                            uploadProgress[index] || 0,
+                                        )}%`}</Typography>
+                                    </Box>
+                                </Box>
+                            ) : (
+                                <Typography variant="caption" color="text.secondary">
+                                    {(item.file.size / 1024 / 1024).toFixed(2)} MB
+                                </Typography>
+                            )}
+                        </Box>
+                    }
+                  />
+                </ListItem>
+              ))}
+            </List>
+          ) : (
+            <Typography
                 variant="body2"
                 color="text.secondary"
-                sx={{ gridColumn: "1 / -1", textAlign: "center" }}
-              >
+                sx={{ textAlign: "center", mt: 4, mb: 2 }}
+            >
                 아직 업로드된 이미지가 없어요.
-              </Typography>
-            )}
-            {images.map((item, index) => (
-              <Box
-                key={`${item.preview}-${index}`}
-                sx={{
-                  position: "relative",
-                  borderRadius: 1,
-                  overflow: "hidden",
-                  border: "1px solid rgba(0,0,0,0.1)",
-                }}
-              >
-                <img
-                  src={item.preview}
-                  alt={`Uploaded ${index + 1}`}
-                  style={{
-                    width: "100%",
-                    display: "block",
-                    objectFit: "cover",
-                    aspectRatio: "3 / 4",
-                  }}
-                />
-                <IconButton
-                  size="small"
-                  onClick={() => handleRemoveImage(index)}
-                  sx={{
-                    position: "absolute",
-                    top: 4,
-                    right: 4,
-                    bgcolor: "rgba(0,0,0,0.5)",
-                    color: "#fff",
-                    "&:hover": {
-                      bgcolor: "rgba(0,0,0,0.7)",
-                    },
-                  }}
-                  aria-label="remove image"
-                >
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            ))}
-          </Box>
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Button color="inherit" onClick={handleClose}>

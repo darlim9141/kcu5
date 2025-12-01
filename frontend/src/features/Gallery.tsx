@@ -1,4 +1,4 @@
-import { Box, useMediaQuery, useTheme, Typography } from "@mui/material";
+import { Box, useMediaQuery, useTheme } from "@mui/material";
 import { Add } from "@mui/icons-material";
 import HTMLFlipBook from "react-pageflip";
 import Upload, { type UploadHandle } from "./Upload";
@@ -6,6 +6,7 @@ import "../styles/flipbook.css"
 import { useEffect, useRef, useState, forwardRef } from "react";
 import { getResults, deleteResult, type StoredResult } from "../utils/storage";
 import ResultsModal, { type AnalysisResult } from "./Results";
+import LoadingOverlay from "../components/LoadingOverlay";
 import paperTexture from "../assets/paper_texture.jpg";
 import spiralTexture from "../assets/spirals.jpg";
 
@@ -45,9 +46,9 @@ const Page = forwardRef<HTMLDivElement, PageProps>((props, ref) => {
             height: '100%',
             backgroundImage: `url(${paperTexture})`,
             backgroundSize: 'cover',
-            mixBlendMode: 'multiply',
+            // mixBlendMode: 'multiply', // Removed to prevent 3D rendering issues
             pointerEvents: 'none',
-            opacity: 0.5,
+            opacity: 0.1, // Reduced opacity since we're not blending
             zIndex: 2
         }}
       />
@@ -71,6 +72,48 @@ const Page = forwardRef<HTMLDivElement, PageProps>((props, ref) => {
   );
 });
 
+// Helper component to stop native event propagation
+const StopPropagationWrapper = ({ children, onClick }: { children: React.ReactNode, onClick?: () => void }) => {
+    const ref = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const element = ref.current;
+        if (!element) return;
+
+        const stopEvent = (e: Event) => {
+            e.stopPropagation();
+        };
+
+        const handleClick = (e: Event) => {
+            e.stopPropagation();
+            if (onClick) onClick();
+        };
+
+        // Stop all possible events that might trigger the flipbook
+        element.addEventListener('mousedown', stopEvent);
+        element.addEventListener('mouseup', stopEvent);
+        element.addEventListener('touchstart', stopEvent);
+        element.addEventListener('touchend', stopEvent);
+        element.addEventListener('pointerdown', stopEvent);
+        element.addEventListener('pointerup', stopEvent);
+        element.addEventListener('click', handleClick);
+
+        return () => {
+            element.removeEventListener('mousedown', stopEvent);
+            element.removeEventListener('mouseup', stopEvent);
+            element.removeEventListener('touchstart', stopEvent);
+            element.removeEventListener('touchend', stopEvent);
+            element.removeEventListener('pointerdown', stopEvent);
+            element.removeEventListener('pointerup', stopEvent);
+            element.removeEventListener('click', handleClick);
+        };
+    }, [onClick]);
+
+    return <div ref={ref} style={{ width: '100%', height: '100%', cursor: 'pointer', position: 'relative', zIndex: 10 }}>{children}</div>;
+};
+
+
+
 export default function Gallery() {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -81,6 +124,10 @@ export default function Gallery() {
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedResults, setSelectedResults] = useState<AnalysisResult[]>([]);
     const [selectedRawResults, setSelectedRawResults] = useState<any[]>([]);
+
+    // Loading Overlay State
+    const [loadingOverlayOpen, setLoadingOverlayOpen] = useState(false);
+    const [uploadingImages, setUploadingImages] = useState<string[]>([]);
 
     const loadResults = async () => {
         const data = await getResults();
@@ -97,27 +144,44 @@ export default function Gallery() {
             imageUrl: item.imageUrl,
             label: item.label,
             confidence: item.confidence,
-            description: item.timestamp ? new Date(item.timestamp).toLocaleString() : undefined
+            description: item.timestamp ? new Date(item.timestamp).toLocaleString() : undefined,
+            recommendations: item.recommendations,
+            accessories: item.accessories
         }]);
         setSelectedRawResults([item.rawResult]);
         setModalOpen(true);
     };
 
-    const handleUploadComplete = (results: StoredResult[], rawResults: any[]) => {
-        // Refresh gallery list
-        loadResults();
+    const handleUploadStart = (files: {file: File, preview: string}[]) => {
+        setUploadingImages(files.map(f => f.preview));
+        setLoadingOverlayOpen(true);
+        // Clear previous selection for new batch
+        setSelectedResults([]);
+        setSelectedRawResults([]);
+    };
+
+    const handleUploadResult = (result: StoredResult, rawResult: any) => {
+        // Add to results list immediately
+        setResults(prev => [...prev, result]);
         
-        // Open modal with new results
-        const mappedResults = results.map(result => ({
+        // Add to modal selection (accumulate results)
+        const mappedResult = {
             id: result.id,
             imageUrl: result.imageUrl,
             label: result.label,
             confidence: result.confidence,
-            description: result.timestamp ? new Date(result.timestamp).toLocaleString() : undefined
-        }));
+            description: result.timestamp ? new Date(result.timestamp).toLocaleString() : undefined,
+            recommendations: result.recommendations,
+            accessories: result.accessories
+        };
         
-        setSelectedResults(mappedResults);
-        setSelectedRawResults(rawResults);
+        setSelectedResults(prev => [...prev, mappedResult]);
+        setSelectedRawResults(prev => [...prev, rawResult]);
+    };
+
+    const handleUploadComplete = () => {
+        // Hide overlay and show results modal
+        setLoadingOverlayOpen(false);
         setModalOpen(true);
     };
 
@@ -169,8 +233,15 @@ export default function Gallery() {
 
         }}>
             {/* Hidden Upload Component to handle dialog */}
-            <Upload ref={uploadRef} onComplete={handleUploadComplete} />
+            <Upload 
+                ref={uploadRef} 
+                onUploadStart={handleUploadStart}
+                onResult={handleUploadResult} 
+                onComplete={handleUploadComplete} 
+            />
             
+            <LoadingOverlay open={loadingOverlayOpen} images={uploadingImages} />
+
             <ResultsModal 
                 open={modalOpen} 
                 onClose={handleModalClose} 
@@ -198,11 +269,11 @@ export default function Gallery() {
                 maxShadowOpacity={0.5}
                 showCover={false}
                 mobileScrollSupport
-                clickEventForward
-                useMouseEvents
+                clickEventForward={!modalOpen}
+                useMouseEvents={!modalOpen}
                 swipeDistance={30}
-                showPageCorners
-                disableFlipByClick={false}
+                showPageCorners={false} // Disable hover animation (peeling)
+                disableFlipByClick={modalOpen}
             >
                 {Array.from({ length: pagesToRender }).map((_, pageIndex) => (
                     <Page key={pageIndex} number={pageIndex + 1}>
@@ -237,6 +308,7 @@ export default function Gallery() {
 
                                     if (resultIndex < results.length) {
                                         const item = results[resultIndex];
+
                                         if (isMeta) {
                                             // Metadata Slot
                                             const date = item.timestamp ? new Date(item.timestamp) : new Date();
@@ -247,18 +319,26 @@ export default function Gallery() {
                                                 </div>
                                             );
                                         } else {
-                                            // Photo Slot - Exclude from overlay by raising z-index
-                                            content = (
-                                                <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
-                                                    <img 
-                                                        src={item.imageUrl} 
-                                                        alt={item.label} 
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                                    />
-                                                </div>
-                                            );
-                                            onClick = () => handleItemClick(item);
-                                            style = { cursor: 'pointer', position: 'relative', zIndex: 10 };
+                                        // Photo Slot
+                                        const storedItem = item as StoredResult;
+                                        content = (
+                                            <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
+                                                <img 
+                                                    src={storedItem.imageUrl} 
+                                                    alt={storedItem.label} 
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                                                />
+                                            </div>
+                                        );
+                                        
+                                        // Use the wrapper to handle click and stop propagation natively
+                                        content = (
+                                            <StopPropagationWrapper onClick={() => handleItemClick(storedItem)}>
+                                                {content}
+                                            </StopPropagationWrapper>
+                                        );
+                                        
+                                        style = {}; 
                                         }
                                     } else {
                                         // Empty slot
@@ -270,7 +350,8 @@ export default function Gallery() {
                                     <div 
                                         className="grid-item" 
                                         key={itemIndex} 
-                                        onClick={onClick}
+                                        // onClick is handled inside content for photos
+                                        onClick={globalIndex === 0 ? onClick : undefined}
                                         style={style}
                                     >
                                         {content}

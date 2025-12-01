@@ -6,6 +6,10 @@ import re
 import base64
 import numpy as np
 from pillow_heif import register_heif_opener
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Register HEIF opener
 register_heif_opener()

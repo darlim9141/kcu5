@@ -6,6 +6,8 @@ export interface StoredResult {
   label: string;
   confidence: number;
   timestamp: string;
+  recommendations?: string[];
+  accessories?: string[];
   rawResult?: any;
 }
 

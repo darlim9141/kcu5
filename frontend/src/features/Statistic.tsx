@@ -178,7 +178,7 @@ const Statistic = () => {
                     justifyContent: 'space-between' 
                 }}>
                     <Typography variant="h3" fontWeight="800" gutterBottom sx={{ mt: 2 }}>
-                        당신이 가장 선호하는 스타일은 <br/>
+                        가장 많이 업로드 된 스타일은 <br/>
                         <span style={{ color: 'inherit' }}>
                             {categoryKo[stats?.topStyle || ''] || stats?.topStyle || '...'}
                         </span>

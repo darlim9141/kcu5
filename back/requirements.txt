@@ -1,0 +1,12 @@
+numpy
+pillow-heif
+python-dotenv
+Pillow
+rembg
+fastapi
+tensorflow
+google-generativeai
+uvicorn
+python-multipart
+scikit-learn
+onnxruntime

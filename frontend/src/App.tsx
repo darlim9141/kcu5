@@ -2,6 +2,7 @@ import MenuLayout from "./components/MenuLayout";
 import { Box } from "@mui/material";
 import Gallery from "./features/Gallery";
 import Results from "./features/Results";
+import Statistic from "./features/Statistic";
 import Settings from "./features/Settings";
 import { Navigate, Route, Routes } from "react-router-dom";
 
@@ -13,6 +14,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Navigate to="/gallery" replace />} />
           <Route path="/gallery" element={<Gallery />} />
+          <Route path="/statistic" element={<Statistic />} />
           <Route path="/results" element={<Results />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/gallery" replace />} />

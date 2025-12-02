@@ -1,7 +1,7 @@
 import { AppBar, Box, Toolbar, IconButton, Typography, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Divider, Link as MLink } from "@mui/material";
 import type React from "react";
 import { useState } from "react";
-import { Settings, Image, Instagram, GitHub, CloseRounded, MenuRounded, BarChart, HelpOutline } from "@mui/icons-material";
+import { Settings, Image, Instagram, GitHub, CloseRounded, MenuRounded, BarChart } from "@mui/icons-material";
 import { Link as RouterLink } from "react-router-dom";
 
 export default function MenuLayout({ children }: { children: React.ReactNode }) {
@@ -50,14 +50,14 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
                     sx: (theme) => ({
                         position: "absolute",
                         top: { xs: theme.spacing(9), sm: theme.spacing(10) },
-                        bottom: theme.spacing(2),
+                        // bottom: theme.spacing(2),
                         ml: { xs: 1.5, sm: 2 },
                         mr: 2,
-                        width: { xs: 220, sm: 260 },
+                        width: { xs: 260, sm: 300 },
                         height: "auto",
                         maxHeight: "70vh",
                         borderRadius: 3,
-                        paddingTop: "100px",
+                        paddingTop: "60px",
                         p: 1.5,
                         color: "#fff",
                         background: "rgba(255,255,255,0.12)",
@@ -82,10 +82,6 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
                             <ListItemButton component={RouterLink} to="/settings" onClick={() => setOpen(false)}>
                                 <ListItemIcon><Settings /></ListItemIcon>
                                 <ListItemText primary="설정" />
-                            </ListItemButton>
-                            <ListItemButton component={RouterLink} to="/help" onClick={() => setOpen(false)}>
-                                <ListItemIcon><HelpOutline /></ListItemIcon>
-                                <ListItemText primary="도움말" />
                             </ListItemButton>
                         </List>
                     </Box>

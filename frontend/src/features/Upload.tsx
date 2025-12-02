@@ -244,7 +244,7 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
         fullWidth
       >
         <DialogTitle sx={{ m: 0, p: 2 }} id="customized-dialog-title">
-          Upload
+          업로드
         </DialogTitle>
         <IconButton
           aria-label="close"

@@ -52,9 +52,101 @@ def get_brand_recommendations(style: str):
     if not GEMINI_API_KEY:
         return []
     prompt = f"""
-    너는 패션 큐레이터야. 스타일: {style}.
-    한국/글로벌 브랜드 5개를 JSON 배열로만 응답해.
-    예: ["Brand1","Brand2","Brand3","Brand4","Brand5"]
+    You are a fashion curator and brand matcher for an everyday but style-conscious Korean user.
+
+    INPUT:
+    - One outfit photo (image input).
+    - A style label: {style}, where {style} is always one of:
+    "street", "minimal", "casual", "classic".
+
+    ------------------------------------------------
+    1. VISUAL + STYLE ANALYSIS
+    ------------------------------------------------
+    From the photo:
+    - analyze silhouette (slim / straight / wide / oversized / tailored),
+    - key items (outerwear, pants, knit, shirt, footwear),
+    - fabric/texture (denim, wool, tweed, technical, etc.),
+    - overall vibe.
+
+    Use the style label {style} only as one of these four categories:
+    - "street"
+    - "minimal"
+    - "casual"
+    - "classic"
+
+    ------------------------------------------------
+    2. BRAND DETECTION
+    ------------------------------------------------
+    Try to detect any clear logos or very recognizable brand-specific design details.
+
+    If you can confidently recognize a brand:
+    - Include that detected brand as the FIRST element of the output array.
+    - Also estimate its PRICE/ MARKET TIER:
+
+    TIER 1 (mass / entry): e.g. Uniqlo, Muji, Zara, H&M, SPAO, Musinsa Standard.
+    TIER 2 (accessible contemporary): e.g. COS, Arket, APC, Our Legacy, Ami, etc.
+    TIER 3 (designer / niche): e.g. luxury houses or small designer labels.
+
+    If you are NOT confident, treat it as “no brand recognized” and DO NOT guess.
+
+    ------------------------------------------------
+    3. BRAND SELECTION LOGIC
+    ------------------------------------------------
+    Goal: a BALANCED mix between familiar and interesting brands.
+    Avoid only very popular streetwear labels, but also avoid only niche or expensive designer labels.
+
+    GENERAL RULES:
+    - Output must be EXACTLY 5 different fashion brands (clothing / footwear focused).
+    - Use ONLY real, existing brands (no shops, marketplaces, or made-up names).
+    - At most ONE total from this "overused" list:
+    New Balance, Nike, Adidas, Stüssy, Carhartt WIP, thisisneverthat, ADER error.
+    - At most ONE highly niche designer / heritage brand
+    (for example Engineered Garments, Margaret Howell, Kapital, etc.).
+    - The rest should be mix of Tier 1 and Tier 2 that fit the style.
+
+    WHEN A BRAND IS RECOGNIZED:
+    - Always put the recognized brand as the first element.
+    - If the detected brand is TIER 1 (e.g. Uniqlo, Muji, Zara, H&M, SPAO, Musinsa Standard):
+    - Prefer a MIDPOINT mix:
+        - 2–3 brands from Tier 1 or Tier 2 at similar price level,
+        - 0–1 from Tier 3 (only if it has a clearly related aesthetic),
+        - Avoid suggesting 4–5 niche or luxury labels for a very basic mass-market outfit.
+    - If the detected brand is TIER 2:
+    - Mostly Tier 2 with optionally 1 Tier 1 and 1 Tier 3.
+    - If the detected brand is TIER 3:
+    - Mostly Tier 2 and Tier 3; up to 1 Tier 1 if that fits the look.
+
+    WHEN NO BRAND IS RECOGNIZED:
+    Use the {style} label plus the visual analysis:
+
+    - style = "street":
+    - 1–2 familiar streetwear / casual sports brands (Tier 1 or popular Tier 2),
+    - 2–3 slightly more niche or directional brands (Tier 2, at most one Tier 3),
+    - Avoid giving only high-fashion or only skate/sneaker brands.
+
+    - style = "minimal":
+    - 1 mass / basic brand that can build minimal outfits (Tier 1),
+    - 3 accessible contemporary minimal brands (Tier 2),
+    - 0–1 niche minimal or designer brand (Tier 3).
+
+    - style = "casual":
+    - 2 mass / easy-to-wear brands (Tier 1),
+    - 2 accessible contemporary brands (Tier 2),
+    - 0–1 niche brand (Tier 3).
+
+    - style = "classic":
+    - 1 mass / entry classic brand or basic label (Tier 1),
+    - 3 contemporary / heritage / tailoring-oriented brands (Tier 2),
+    - 0–1 niche or luxury classic brand (Tier 3).
+
+    ------------------------------------------------
+    4. OUTPUT FORMAT
+    ------------------------------------------------
+    - Output MUST be a pure JSON array of EXACTLY 5 brand names as strings.
+    - No explanations, no comments, no markdown, no extra text.
+
+    OUTPUT EXAMPLE (FORMAT ONLY):
+    ["Brand1","Brand2","Brand3","Brand4","Brand5"]
     """
     try:
         model = genai.GenerativeModel("models/gemini-2.5-flash")
@@ -65,30 +157,6 @@ def get_brand_recommendations(style: str):
             return json.loads(m.group(0))
     except Exception as e:
         print(f"Gemini recs failed: {e}")
-    return []
-
-def get_accessory_recommendations(style: str):
-    """
-    스타일별 악세사리 구매 링크(HTTPS) 5개를 Gemini로 생성.
-    실패하거나 키가 없으면 빈 리스트 반환.
-    """
-    if not GEMINI_API_KEY:
-        return []
-    prompt = f"""
-    너는 패션 큐레이터야. 스타일: {style}.
-    이 스타일과 잘 어울리는 악세사리 5개의 구매 링크만 HTTPS URL로 답해.
-    JSON 배열 형태로만 응답해.
-    예: ["https://brand.com/item1","https://brand.com/item2","https://brand.com/item3","https://brand.com/item4","https://brand.com/item5"]
-    """
-    try:
-        model = genai.GenerativeModel("models/gemini-2.5-flash")
-        resp = model.generate_content(prompt)
-        txt = resp.text or ""
-        m = re.search(r"\[.*\]", txt, re.S)
-        if m:
-            return json.loads(m.group(0))
-    except Exception as e:
-        print(f"Gemini accessories failed: {e}")
     return []
 
 def load_all_models():
@@ -278,7 +346,6 @@ async def predict_single(file: UploadFile = File(...)):
         result = analyze_single_image(processed_img)
         style = result["classification"]["category"]
         result["recommendations"] = get_brand_recommendations(style)
-        result["accessories"] = get_accessory_recommendations(style)
         return result
     except Exception as e:
         print(f"Error processing single image: {e}")
@@ -331,7 +398,7 @@ async def predict_batch(files: List[UploadFile] = File(...)):
             result = analyze_single_image(processed_img)
             style = result["classification"]["category"]
             result["recommendations"] = get_brand_recommendations(style)
-            result["accessories"] = get_accessory_recommendations(style)
+            # result["accessories"] = get_accessory_recommendations(style)
             result['filename'] = file.filename
             individual_results.append(result)   
 

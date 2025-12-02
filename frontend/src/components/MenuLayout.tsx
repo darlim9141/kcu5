@@ -59,7 +59,7 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
                         borderRadius: 3,
                         paddingTop: "60px",
                         p: 1.5,
-                        color: "#fff",
+                        color: "#1c1c1e",
                         background: "rgba(255,255,255,0.12)",
                         border: "1px solid rgba(255,255,255,0.25)",
                         backdropFilter: "blur(10px)",
@@ -67,7 +67,6 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
                     })
                 }}
             >
-                {/* 추가사항: 도움말, 통계 버튼 추가 */}
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
                     <Box sx={{ flex: 1 }}>
                         <List>

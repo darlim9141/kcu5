@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Typography, CircularProgress, LinearProgress } from '@mui/material';
+import { useEffect, useState } from 'react';
+import { Box, Typography, CircularProgress } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getResults, type StoredResult } from '../utils/storage';
 

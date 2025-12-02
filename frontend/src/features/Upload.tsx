@@ -19,7 +19,6 @@ import Avatar from "@mui/material/Avatar";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import { useNavigate } from "react-router-dom";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -50,7 +49,6 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
   const [uploadProgress, setUploadProgress] = useState<Record<number, number>>({});
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const navigate = useNavigate();
 
   useImperativeHandle(ref, () => ({
     open: () => {

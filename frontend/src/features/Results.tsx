@@ -1,6 +1,6 @@
 import { Box, Dialog, DialogContent, IconButton, Typography, useMediaQuery, useTheme, Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
 import { Close, ArrowBackIosNew, ArrowForwardIos, ExpandMore, DeleteOutline as DeleteOutlineIcon } from "@mui/icons-material";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import ClusterMap from "../components/ClusterMap";
 import polaroidEffect from "../assets/polaroid_effect.jpg";
 import whiteGlossy from "../assets/white_glossy.jpg";
@@ -29,12 +29,44 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
     const [graphData, setGraphData] = useState([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [imageOrientation, setImageOrientation] = useState<'landscape' | 'portrait' | 'square'>('square');
+    const [expanded, setExpanded] = useState(true); // Default expanded
+    const contentRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (open) {
             setCurrentIndex(0);
+            setExpanded(false); // Start closed by default
         }
     }, [open]);
+
+    // Auto-scroll logic
+    useEffect(() => {
+        if (contentRef.current) {
+            if (expanded) {
+                // Scroll to bottom continuously during animation to "stick" to the bottom
+                const startTime = Date.now();
+                const duration = 400; // Match/exceed accordion transition duration
+
+                const animateScroll = () => {
+                    if (!contentRef.current) return;
+                    
+                    // Instant scroll to current bottom
+                    contentRef.current.scrollTo({
+                        top: contentRef.current.scrollHeight,
+                        behavior: 'auto'
+                    });
+
+                    if (Date.now() - startTime < duration) {
+                        requestAnimationFrame(animateScroll);
+                    }
+                };
+                requestAnimationFrame(animateScroll);
+            } else {
+                // Scroll to top when collapsed
+                contentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+    }, [expanded]);
 
     useEffect(() => {
         fetch('/web_graph_data.json')
@@ -147,13 +179,30 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
                 </>
             )}
 
-            <DialogContent sx={{ p: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+            <DialogContent 
+                ref={contentRef}
+                sx={{ 
+                p: 0, 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'flex-start', // Align to top to allow scrolling down
+                overflowY: expanded ? 'auto' : 'hidden', // Lock scroll when collapsed
+                pt: { xs: 14, md: 0 }, // Add top padding on mobile for buttons
+                height: '100%' // Ensure it takes full height
+            }}>
                 {!currentResult ? (
                     <Box sx={{ bgcolor: 'white', p: 4, borderRadius: 1 }}>
                         <Typography>결과를 불러오는 중...</Typography>
                     </Box>
                 ) : (
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '500px', mb: 10 }}>
+                    <Box sx={{ 
+                        display: 'flex', 
+                        flexDirection: 'column', 
+                        alignItems: 'center', 
+                        width: { xs: '90%', sm: '80%', md: '100%' }, // Responsive width
+                        maxWidth: '500px', 
+                        mb: { xs: 2, md: 10 } // Reduce bottom margin on mobile
+                    }}>
                         <Box
                             sx={{
                                 bgcolor: 'white',
@@ -167,8 +216,8 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
                                 width: '100%',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                maxHeight: 'calc(90vh - 64px)', // Constrain height to viewport minus margins
-                                overflow: 'hidden', // Prevent card itself from scrolling
+                                height: 'auto', // Allow it to grow
+                                // Removed maxHeight and overflow to allow full expansion
                             }}
                         >
 
@@ -215,11 +264,16 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
 
                             {/* Polaroid "Writing" Area (Accordion) */}
                             <Accordion
+                                expanded={expanded}
+                                onChange={(_, isExpanded) => setExpanded(isExpanded)}
                                 elevation={0}
                                 disableGutters
                                 sx={{
                                     '&:before': { display: 'none' }, // Remove default divider
-                                    bgcolor: 'transparent'
+                                    bgcolor: 'transparent',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    width: '100%'
                                 }}
                             >
                                 <AccordionSummary
@@ -237,10 +291,15 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
                                 >
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                         <Box>
-                                            <Typography variant="h5" sx={{ fontFamily: '"Permanent Marker", "cursive", sans-serif', fontWeight: 700 }}>
-                                                {currentResult.label}
+                                            <Typography variant="h5" sx={{ fontFamily: 'Pretendard', fontWeight: 700 }}>
+                                                {{
+                                                    street: '스트릿',
+                                                    minimal: '미니멀',
+                                                    casual: '캐주얼',
+                                                    classic: '클래식'
+                                                }[currentResult.label.toLowerCase()] || currentResult.label}
                                             </Typography>
-                                            <Typography variant="caption" color="text.secondary" sx={{ fontFamily: '"Permanent Marker", "cursive", sans-serif' }}>
+                                            <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'Pretendard' }}>
                                                 {currentResult.description || new Date().toLocaleDateString()}
                                             </Typography>
                                         </Box>
@@ -250,7 +309,12 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
                                     </Typography>
                                 </AccordionSummary>
 
-                                <AccordionDetails sx={{ px: 1, pb: 2, pt: 0, overflowY: 'auto', flex: 1 }}> {/* Allow scrolling within details */}
+                                <AccordionDetails sx={{ 
+                                    px: 1, 
+                                    pb: 2, 
+                                    pt: 0, 
+                                    display: 'block'
+                                }}> 
                                     {/* Recommendations */}
 
 

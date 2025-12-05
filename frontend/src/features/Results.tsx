@@ -1,6 +1,7 @@
 import { Box, Dialog, DialogContent, IconButton, Typography, useMediaQuery, useTheme, Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
 import { Close, ArrowBackIosNew, ArrowForwardIos, ExpandMore, DeleteOutline as DeleteOutlineIcon } from "@mui/icons-material";
 import { useEffect, useState, useRef } from "react";
+import { motion } from "framer-motion";
 import ClusterMap from "../components/ClusterMap";
 import polaroidEffect from "../assets/polaroid_effect.jpg";
 import whiteGlossy from "../assets/white_glossy.jpg";
@@ -31,6 +32,14 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
     const [imageOrientation, setImageOrientation] = useState<'landscape' | 'portrait' | 'square'>('square');
     const [expanded, setExpanded] = useState(true); // Default expanded
     const contentRef = useRef<HTMLDivElement>(null);
+
+    const categories = ['street', 'minimal', 'casual', 'classic'];
+    const categoryKo: Record<string, string> = {
+        street: '스트릿',
+        minimal: '미니멀',
+        casual: '캐주얼',
+        classic: '클래식'
+    };
 
     useEffect(() => {
         if (open) {
@@ -187,8 +196,8 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
                 justifyContent: 'center', 
                 alignItems: 'flex-start', // Align to top to allow scrolling down
                 overflowY: expanded ? 'auto' : 'hidden', // Lock scroll when collapsed
-                pt: { xs: 14, md: 0 }, // Add top padding on mobile for buttons
-                height: '100%' // Ensure it takes full height
+                mt: { xs: 14, md: 0 }, // Use margin instead of padding to push scroll container down
+                height: { xs: 'calc(100% - 112px)', md: '100%' } // Adjust height to account for margin
             }}>
                 {!currentResult ? (
                     <Box sx={{ bgcolor: 'white', p: 4, borderRadius: 1 }}>
@@ -316,6 +325,51 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
                                     display: 'block'
                                 }}> 
                                     {/* Recommendations */}
+                                    {currentRawResult?.classification?.all_confidences && (
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2, mt: 1 }}>
+                                            {[...categories]
+                                                .sort((a, b) => {
+                                                    const valA = currentRawResult.classification.all_confidences[Object.keys(currentRawResult.classification.all_confidences).find((k: string) => k.toLowerCase() === a) || ''] || 0;
+                                                    const valB = currentRawResult.classification.all_confidences[Object.keys(currentRawResult.classification.all_confidences).find((k: string) => k.toLowerCase() === b) || ''] || 0;
+                                                    return valB - valA;
+                                                })
+                                                .map(cat => {
+                                                    // Find the key in all_confidences that matches the category (case-insensitive)
+                                                    const confKey = Object.keys(currentRawResult.classification.all_confidences).find((k: string) => k.toLowerCase() === cat) || '';
+                                                    const percentage = currentRawResult.classification.all_confidences[confKey] || 0;
+                                                    
+                                                    return (
+                                                    <Box key={cat}>
+                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                                            <Typography variant="body2" fontWeight="800" color="text.primary" fontFamily="Pretendard">
+                                                                {categoryKo[cat]}
+                                                            </Typography>
+                                                            <Typography variant="body2" fontWeight="600" color="text.secondary" fontFamily="Pretendard">
+                                                                {percentage}%
+                                                            </Typography>
+                                                        </Box>
+                                                        <Box sx={{ 
+                                                            height: '8px', 
+                                                            width: '100%', 
+                                                            bgcolor: '#f0f0f0', 
+                                                            borderRadius: '4px', 
+                                                            overflow: 'hidden' 
+                                                        }}>
+                                                            <motion.div
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${percentage}%` }}
+                                                                transition={{ duration: 1, delay: 0.2 }}
+                                                                style={{
+                                                                    height: '100%',
+                                                                    backgroundColor: cat === currentResult.label.toLowerCase() ? '#007AFF' : '#C7C7CC',
+                                                                    borderRadius: '4px'
+                                                                }}
+                                                            />
+                                                        </Box>
+                                                    </Box>
+                                                )})}
+                                        </Box>
+                                    )}
 
 
                                     {/* 3D Map */}

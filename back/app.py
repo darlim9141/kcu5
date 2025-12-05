@@ -25,7 +25,10 @@ from tensorflow.keras.applications.resnet50 import preprocess_input
 from tensorflow.keras.preprocessing.image import img_to_array
  
 # DuckDuckGo Search
-from duckduckgo_search import DDGS
+try:
+    from ddgs import DDGS
+except ImportError:
+    from duckduckgo_search import DDGS
 
 # === Configuration & Constants ===
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -306,12 +309,12 @@ async def crawl_images(style: str):
             for keywords in search_groups:
                 query = " ".join(keywords)
                 try:
-                    # Fetch ~100 per gender
+                    # Fetch ~500 per gender to support infinite scroll
                     ddg_results = ddgs.images(
                         query,
                         region="kr-kr", 
                         safesearch="on",
-                        max_results=100
+                        max_results=500
                     )
                     
                     for r in ddg_results:

@@ -393,7 +393,7 @@ export default function Gallery() {
                                                     const date = item.timestamp ? new Date(item.timestamp) : new Date();
                                                     content = (
                                                         <div style={{ fontSize: "12px", textAlign: "center", padding: '4px', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
-                                                            <div style={{ fontWeight: 'bold' }}>{date.toLocaleDateString()}</div>
+                                                            <div style={{ fontWeight: 'bold', color: '#000000' }}>{date.toLocaleDateString()}</div>
                                                             <div style={{ color: '#666' }}>{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                                                         </div>
                                                     );

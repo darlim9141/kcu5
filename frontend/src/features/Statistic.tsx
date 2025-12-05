@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Box, Typography, CircularProgress, IconButton } from '@mui/material';
+import { Box, Typography, CircularProgress, IconButton, useTheme } from '@mui/material';
 import { ArrowUpward } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getResults, type StoredResult } from '../utils/storage';
@@ -104,6 +104,8 @@ const Statistic = () => {
         );
     }
 
+    const theme = useTheme();
+
     return (
         <Box 
             ref={scrollRef}
@@ -111,7 +113,7 @@ const Statistic = () => {
             height: 'calc(100% - 80px)', // Subtract top margin
             mt: '80px', // Push down below menu
             overflowY: 'auto',
-            // bgcolor: '#f5f5f7', // Handled by MenuLayout
+            bgcolor: 'background.default', // Use theme background
             position: 'relative' // Ensure fixed children are positioned correctly if needed
         }}>
             <Box sx={{ 
@@ -130,7 +132,7 @@ const Statistic = () => {
                 maxWidth: '1400px', 
                 height: { xs: 'auto', md: '80vh' },
                 minHeight: { xs: 'auto', md: '600px' }, 
-                bgcolor: 'white', 
+                bgcolor: 'background.paper', 
                 borderRadius: '24px', 
                 boxShadow: '0 20px 40px rgba(0,0,0,0.05)',
                 display: 'flex',
@@ -194,7 +196,7 @@ const Statistic = () => {
                 }}>
                     <Typography variant="h3" fontWeight="800" gutterBottom sx={{ mt: 2 }}>
                         가장 많이 업로드 된 스타일은 <br/>
-                        <span style={{ color: 'inherit' }}>
+                        <span style={{ color: 'text.primary' }}>
                             {categoryKo[stats?.topStyle || ''] || stats?.topStyle || '...'}
                         </span>
                         입니다.
@@ -216,7 +218,7 @@ const Statistic = () => {
                                 <Box sx={{ 
                                     height: '12px', 
                                     width: '100%', 
-                                    bgcolor: '#f0f0f0', 
+                                    bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : '#f0f0f0', 
                                     borderRadius: '6px', 
                                     overflow: 'hidden' 
                                 }}>
@@ -226,7 +228,7 @@ const Statistic = () => {
                                         transition={{ duration: 1, delay: 0.5 }}
                                         style={{
                                             height: '100%',
-                                            backgroundColor: cat === stats?.topStyle ? '#007AFF' : '#C7C7CC',
+                                            backgroundColor: cat === stats?.topStyle ? '#007AFF' : (theme.palette.mode === 'dark' ? '#555555' : '#C7C7CC'),
                                             borderRadius: '6px'
                                         }}
                                     />

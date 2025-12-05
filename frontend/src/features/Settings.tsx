@@ -1,13 +1,28 @@
-import { Button, Container, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper, Snackbar, Typography } from "@mui/material";
-import { useState } from "react";
+import { Button, Container, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper, Snackbar, Typography, Box, useTheme, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { useState, useContext } from "react";
 import { clearResults } from "../utils/storage";
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import SettingsSystemDaydreamIcon from '@mui/icons-material/SettingsSystemDaydream';
 import { useNavigate } from "react-router-dom";
+import { ColorModeContext, type ColorMode } from "../App";
 
 export default function Settings() {
     const [openConfirm, setOpenConfirm] = useState(false);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const navigate = useNavigate();
+    const theme = useTheme();
+    const { mode, setColorMode } = useContext(ColorModeContext);
+
+    const handleModeChange = (
+        _: React.MouseEvent<HTMLElement>,
+        newMode: ColorMode | null,
+    ) => {
+        if (newMode !== null) {
+            setColorMode(newMode);
+        }
+    };
 
     const handleDeleteAll = async () => {
         await clearResults();
@@ -21,22 +36,82 @@ export default function Settings() {
 
     return (
         <Container maxWidth="sm" sx={{ pt: 12, pb: 4 }}>
-            <Typography variant="h4" fontWeight={800} gutterBottom sx={{ mb: 4, px: 1 }}>
+            <Typography variant="h4" fontWeight={800} gutterBottom sx={{ mb: 4, px: 1, color: 'text.primary' }}>
                 설정
             </Typography>
+
+            {/* Display Settings */}
+            <Paper 
+                elevation={0} 
+                sx={{ 
+                    p: 4, 
+                    mb: 3,
+                    borderRadius: '24px',
+                    background: theme.palette.mode === 'dark' ? 'rgba(44, 44, 46, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+                    backdropFilter: 'blur(20px)',
+                    boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
+                    border: '1px solid rgba(255, 255, 255, 0.18)'
+                }}
+            >
+                <Typography variant="h6" fontWeight={700} gutterBottom sx={{ color: 'text.primary', mb: 2 }}>
+                    화면 모드
+                </Typography>
+                
+                <ToggleButtonGroup
+                    value={mode}
+                    exclusive
+                    onChange={handleModeChange}
+                    aria-label="color mode selection"
+                    fullWidth
+                    sx={{ 
+                        '& .MuiToggleButton-root': {
+                            borderRadius: '12px',
+                            border: '1px solid rgba(0,0,0,0.1)',
+                            py: 1.5,
+                            color: 'text.secondary',
+                            '&.Mui-selected': {
+                                backgroundColor: 'primary.main',
+                                color: 'white',
+                                '&:hover': {
+                                    backgroundColor: 'primary.dark',
+                                }
+                            }
+                        }
+                    }}
+                >
+                    <ToggleButton value="system">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <SettingsSystemDaydreamIcon fontSize="small" />
+                            <Typography fontWeight={600}>시스템</Typography>
+                        </Box>
+                    </ToggleButton>
+                    <ToggleButton value="light">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <LightModeIcon fontSize="small" />
+                            <Typography fontWeight={600}>라이트</Typography>
+                        </Box>
+                    </ToggleButton>
+                    <ToggleButton value="dark">
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <DarkModeIcon fontSize="small" />
+                            <Typography fontWeight={600}>다크</Typography>
+                        </Box>
+                    </ToggleButton>
+                </ToggleButtonGroup>
+            </Paper>
 
             <Paper 
                 elevation={0} 
                 sx={{ 
                     p: 4, 
                     borderRadius: '24px',
-                    background: 'rgba(255, 255, 255, 0.7)',
+                    background: theme.palette.mode === 'dark' ? 'rgba(44, 44, 46, 0.7)' : 'rgba(255, 255, 255, 0.7)',
                     backdropFilter: 'blur(20px)',
                     boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.15)',
                     border: '1px solid rgba(255, 255, 255, 0.18)'
                 }}
             >
-                <Typography variant="h6" fontWeight={700} gutterBottom>
+                <Typography variant="h6" fontWeight={700} gutterBottom sx={{ color: 'text.primary' }}>
                     데이터 관리
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>

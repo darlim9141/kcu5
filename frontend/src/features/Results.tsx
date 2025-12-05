@@ -144,7 +144,8 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
             }}
             PaperProps={{
                 sx: {
-                    bgcolor: 'transparent', // Make dialog background transparent to emphasize the Polaroid
+                    bgcolor: 'transparent !important', // Make dialog background transparent to emphasize the Polaroid
+                    backgroundImage: 'none !important', // Remove dark mode elevation overlay
                     boxShadow: 'none',
                     overflow: 'visible', // Allow navigation buttons to be outside if needed
                     maxHeight: '95vh',
@@ -201,7 +202,7 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
             }}>
                 {!currentResult ? (
                     <Box sx={{ bgcolor: 'white', p: 4, borderRadius: 1 }}>
-                        <Typography>결과를 불러오는 중...</Typography>
+                        <Typography sx={{ color: 'black' }}>결과를 불러오는 중...</Typography>
                     </Box>
                 ) : (
                     <Box sx={{ 
@@ -286,7 +287,7 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
                                 }}
                             >
                                 <AccordionSummary
-                                    expandIcon={<ExpandMore />}
+                                    expandIcon={<ExpandMore sx={{ color: '#000000' }} />}
                                     sx={{
                                         px: 1,
                                         minHeight: 60,
@@ -300,7 +301,7 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
                                 >
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                         <Box>
-                                            <Typography variant="h5" sx={{ fontFamily: 'Pretendard', fontWeight: 700 }}>
+                                            <Typography variant="h5" sx={{ fontWeight: 700, color: '#000000' }}>
                                                 {{
                                                     street: '스트릿',
                                                     minimal: '미니멀',
@@ -308,12 +309,12 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
                                                     classic: '클래식'
                                                 }[currentResult.label.toLowerCase()] || currentResult.label}
                                             </Typography>
-                                            <Typography variant="caption" color="text.secondary" sx={{ fontFamily: 'Pretendard' }}>
+                                            <Typography variant="caption" sx={{ color: '#666666' }}>
                                                 {currentResult.description || new Date().toLocaleDateString()}
                                             </Typography>
                                         </Box>
                                     </Box>
-                                    <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold', ml: 2 }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 'bold', ml: 2, color: '#007AFF' }}>
                                         {(currentResult.confidence * 100).toFixed(0)}%
                                     </Typography>
                                 </AccordionSummary>
@@ -341,10 +342,10 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
                                                     return (
                                                     <Box key={cat}>
                                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                                            <Typography variant="body2" fontWeight="800" color="text.primary" fontFamily="Pretendard">
+                                                            <Typography variant="body2" fontWeight="800" sx={{ color: '#000000' }}>
                                                                 {categoryKo[cat]}
                                                             </Typography>
-                                                            <Typography variant="body2" fontWeight="600" color="text.secondary" fontFamily="Pretendard">
+                                                            <Typography variant="body2" fontWeight="600" sx={{ color: '#666666' }}>
                                                                 {percentage}%
                                                             </Typography>
                                                         </Box>

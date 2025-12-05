@@ -8,7 +8,7 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
     const [open, setOpen] = useState(false);
 
     return (
-        <Box sx={{ position: "", height: "100dvh", overflow: "hidden", bgcolor: "#f5f5f7" }}>
+        <Box sx={{ position: "", height: "100dvh", overflow: "hidden", bgcolor: "background.default" }}>
             <AppBar color="transparent" elevation={0} position="fixed" sx={{ 
                     zIndex: (t) => t.zIndex.drawer + 1,
                     backdropFilter: "none",
@@ -22,16 +22,16 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
                             position: "relative",
                             zIndex: (t) => t.zIndex.drawer + 2,
                             width: 44, height: 44, borderRadius: "50%",
-                            bgcolor: "rgba(255, 255, 255, 0.5)",
-                            border: "1px solid rgba(255, 255, 255, 0.2)",
+                            bgcolor: (theme) => theme.palette.mode === 'dark' ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.5)",
+                            border: (theme) => `1px solid ${theme.palette.mode === 'dark' ? "rgba(255, 255, 255, 0.1)" : "rgba(255, 255, 255, 0.2)"}`,
                             backdropFilter: "blur(10px)",
                             WebkitBackdropFilter: "blur(10px)",
-                            // boxShadow: "0 8px 24px rgba(0,0,0,.25)",
+                            color: 'text.primary'
                         }}
                     >
                         {open ? <CloseRounded/> : <MenuRounded/>}
                     </IconButton>
-                    <Typography sx={{ ml: 2, fontWeight: 1000 }}>모입</Typography>
+                    <Typography sx={{ ml: 2, fontWeight: 1000, color: 'text.primary' }}>모입</Typography>
                 </Toolbar>
             </AppBar>
 
@@ -59,8 +59,8 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
                         borderRadius: 3,
                         paddingTop: "60px",
                         p: 1.5,
-                        color: "#333333",
-                        background: "rgba(255,255,255,0.12)",
+                        color: "text.primary",
+                        background: theme.palette.mode === 'dark' ? "rgba(44, 44, 46, 0.8)" : "rgba(255,255,255,0.12)",
                         border: "1px solid rgba(255,255,255,0.25)",
                         backdropFilter: "blur(10px)",
                         WebkitBackdropFilter: "blur(10px)"
@@ -71,23 +71,23 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
                     <Box sx={{ flex: 1 }}>
                         <List>
                             <ListItemButton component={RouterLink} to ="/gallery" onClick={() => setOpen(false)}>
-                                <ListItemIcon sx={{ color: "#333333" }}><Image /></ListItemIcon>
+                                <ListItemIcon sx={{ color: "text.primary" }}><Image /></ListItemIcon>
                                 <ListItemText primary="갤러리" />
                             </ListItemButton>
                             <ListItemButton component={RouterLink} to = "/statistic" onClick={() => setOpen(false)}>
-                                <ListItemIcon sx={{ color: "#333333" }}><BarChart /></ListItemIcon>
+                                <ListItemIcon sx={{ color: "text.primary" }}><BarChart /></ListItemIcon>
                                 <ListItemText primary="통계" />                             
                             </ListItemButton>
                             <ListItemButton component={RouterLink} to="/settings" onClick={() => setOpen(false)}>
-                                <ListItemIcon sx={{ color: "#333333" }}><Settings /></ListItemIcon>
+                                <ListItemIcon sx={{ color: "text.primary" }}><Settings /></ListItemIcon>
                                 <ListItemText primary="설정" />
                             </ListItemButton>
                         </List>
                     </Box>
-                    <Divider />
+                    <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
                     <Box sx={{ display: "flex", gap: 1.5, p:2 }}>
-                        <MLink href="https://www.instagram.com/kcu_madison/" target="_blank" color="#333333" underline="none"><Instagram /></MLink>
-                        <MLink href="https://github.com/darlim9141/kcu5" target="_blank" color="#333333" underline="none"><GitHub /></MLink>
+                        <MLink href="https://www.instagram.com/kcu_madison/" target="_blank" color="text.primary" underline="none"><Instagram /></MLink>
+                        <MLink href="https://github.com/darlim9141/kcu5" target="_blank" color="text.primary" underline="none"><GitHub /></MLink>
                     </Box>
                 </Box>
             </Drawer>      

@@ -369,11 +369,11 @@ export default function Gallery() {
                         maxShadowOpacity={0.5}
                         showCover={false}
                         mobileScrollSupport
-                        clickEventForward={!modalOpen}
-                        useMouseEvents={!modalOpen}
                         swipeDistance={30}
                         showPageCorners={false} // Disable hover animation (peeling)
-                        disableFlipByClick={modalOpen}
+                        clickEventForward={true}
+                        useMouseEvents={true}
+                        disableFlipByClick={false}
                     >
                         {Array.from({ length: pagesToRender }).map((_, pageIndex) => (
                             <Page key={pageIndex} number={pageIndex + 1}>

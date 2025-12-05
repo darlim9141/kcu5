@@ -108,9 +108,10 @@ const Statistic = () => {
         <Box 
             ref={scrollRef}
             sx={{ 
-            height: '100%', 
+            height: 'calc(100% - 80px)', // Subtract top margin
+            mt: '80px', // Push down below menu
             overflowY: 'auto',
-            bgcolor: '#f5f5f7', // iOS-like background
+            // bgcolor: '#f5f5f7', // Handled by MenuLayout
             position: 'relative' // Ensure fixed children are positioned correctly if needed
         }}>
             <Box sx={{ 
@@ -119,7 +120,7 @@ const Statistic = () => {
                 flexDirection: 'column',
                 alignItems: 'center', 
                 justifyContent: 'center',
-                pt: { xs: 10, md: 12 }, 
+                pt: 2, // Reduced padding since we have margin
                 pb: { xs: 2, md: 4 }, 
                 px: { xs: 2, md: 4 },
                 boxSizing: 'border-box'

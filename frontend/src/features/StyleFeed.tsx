@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Box, CircularProgress } from '@mui/material';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Box, CircularProgress, useMediaQuery, useTheme } from '@mui/material';
 import axios from 'axios';
 
 // 환경 변수 사용 (배포 시 필수!)
@@ -10,6 +10,10 @@ interface StyleFeedProps {
 }
 
 const StyleFeed = ({ style }: StyleFeedProps) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+    const columnCount = isMobile ? 2 : 4;
+
     const [images, setImages] = useState<{ image: string, title: string, url: string }[]>([]);
     const [loading, setLoading] = useState(false);
     const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
@@ -19,6 +23,17 @@ const StyleFeed = ({ style }: StyleFeedProps) => {
 
     const observerRef = useRef<IntersectionObserver | null>(null);
     const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+    // Distribute images into columns
+    const columns = useMemo(() => {
+        const cols: typeof images[] = Array.from({ length: columnCount }, () => []);
+        const validImages = images.filter(img => !failedImages.has(img.image));
+        
+        validImages.forEach((img, index) => {
+            cols[index % columnCount].push(img);
+        });
+        return cols;
+    }, [images, columnCount, failedImages]);
 
     const fetchImages = useCallback(async () => {
         if (loading) return;
@@ -92,53 +107,54 @@ const StyleFeed = ({ style }: StyleFeedProps) => {
     }
 
     return (
-        <Box sx={{ 
-            columnCount: { xs: 2, md: 4 }, 
-            columnGap: '16px',
-            px: 2
-        }}>
-            {images.map((img, index) => {
-                if (failedImages.has(img.image)) return null;
-
-                return (
-                <Box key={`${img.image}-${index}`} sx={{ 
-                    breakInside: 'avoid', 
-                    mb: 2, 
-                    borderRadius: '16px', 
-                    overflow: 'hidden',
-                    bgcolor: 'white',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                    position: 'relative',
-                    transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
-                    '&:hover': {
-                        transform: 'scale(1.05)',
-                        zIndex: 1,
-                        boxShadow: '0 12px 24px rgba(0,0,0,0.15)'
-                    }
-                }}>
-                    <a href={img.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
-                        <img 
-                            src={img.image} 
-                            alt={img.title} 
-                            onError={() => setFailedImages(prev => {
-                                const newSet = new Set(prev);
-                                newSet.add(img.image);
-                                return newSet;
-                            })}
-                            style={{ 
-                                width: '100%', 
-                                display: 'block', 
-                                height: 'auto'
-                            }} 
-                            loading="lazy"
-                        />
-                    </a>
-                </Box>
-            )})}
+        <Box sx={{ px: 2 }}>
+            <Box sx={{ 
+                display: 'flex',
+                gap: '16px',
+                alignItems: 'flex-start'
+            }}>
+                {columns.map((col, colIndex) => (
+                    <Box key={colIndex} sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {col.map((img, index) => (
+                            <Box key={`${img.image}-${index}`} sx={{ 
+                                borderRadius: '16px', 
+                                overflow: 'hidden',
+                                bgcolor: 'white',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                                position: 'relative',
+                                transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
+                                '&:hover': {
+                                    transform: 'scale(1.05)',
+                                    zIndex: 1,
+                                    boxShadow: '0 12px 24px rgba(0,0,0,0.15)'
+                                }
+                            }}>
+                                <a href={img.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                                    <img 
+                                        src={img.image} 
+                                        alt={img.title} 
+                                        onError={() => setFailedImages(prev => {
+                                            const newSet = new Set(prev);
+                                            newSet.add(img.image);
+                                            return newSet;
+                                        })}
+                                        style={{ 
+                                            width: '100%', 
+                                            display: 'block', 
+                                            height: 'auto'
+                                        }} 
+                                        loading="lazy"
+                                    />
+                                </a>
+                            </Box>
+                        ))}
+                    </Box>
+                ))}
+            </Box>
             
             {/* Sentinel for Infinite Scroll */}
-            <Box ref={loadMoreRef} sx={{ height: '20px', width: '100%', display: 'flex', justifyContent: 'center', mt: 2 }}>
-                {loading && <CircularProgress size={20} />}
+            <Box ref={loadMoreRef} sx={{ height: '40px', width: '100%', display: 'flex', justifyContent: 'center', mt: 4, mb: 4 }}>
+                {loading && <CircularProgress size={24} />}
             </Box>
         </Box>
     );

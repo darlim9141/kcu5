@@ -194,11 +194,11 @@ const Statistic = () => {
                     flexDirection: 'column', 
                     justifyContent: 'space-between' 
                 }}>
-                    <Typography variant="h3" fontWeight="800" gutterBottom sx={{ mt: 2 }}>
-                        가장 많이 업로드 된 스타일은 <br/>
-                        <span style={{ color: 'text.primary' }}>
+                    <Typography variant="h3" fontWeight="800" gutterBottom sx={{ mt: 2, wordBreak: 'keep-all' }}>
+                        가장 많이 업로드 된 스타일은{' '}
+                        <Box component="span" sx={{ color: 'text.primary' }}>
                             {categoryKo[stats?.topStyle || ''] || stats?.topStyle || '...'}
-                        </span>
+                        </Box>
                         입니다.
                     </Typography>
                     

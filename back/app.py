@@ -294,31 +294,38 @@ async def crawl_images(style: str):
     Keywords: style + "fashion", "ootd", "street", "dailylook"
     """
     try:
-        # Construct a rich search query
-        # e.g. "street fashion ootd instagram"
-        keywords = [style, "fashion", "ootd", "dailylook", "instagram"]
-        query = " ".join(keywords)
-        
         results = []
+        
+        # Search strategies to mix genders
+        search_groups = [
+            [style, "남자", "코디", "패션", "인스타그램"],
+            [style, "여자", "코디", "패션", "인스타그램"]
+        ]
+        
         with DDGS() as ddgs:
-            # Search for images
-            # Fetch more to allow for shuffling (randomness)
-            ddg_results = ddgs.images(
-                query,
-                region="kr-kr", # Target Korean content if possible
-                safesearch="on",
-                max_results=200
-            )
-            
-            for r in ddg_results:
-                if r.get("image"):
-                    results.append({
-                        "image": r["image"],
-                        "thumbnail": r.get("thumbnail", r["image"]),
-                        "title": r.get("title", ""),
-                        "source": r.get("source", ""),
-                        "url": r.get("url", "") # Source page URL
-                    })
+            for keywords in search_groups:
+                query = " ".join(keywords)
+                try:
+                    # Fetch ~100 per gender
+                    ddg_results = ddgs.images(
+                        query,
+                        region="kr-kr", 
+                        safesearch="on",
+                        max_results=100
+                    )
+                    
+                    for r in ddg_results:
+                        if r.get("image"):
+                            results.append({
+                                "image": r["image"],
+                                "thumbnail": r.get("thumbnail", r["image"]),
+                                "title": r.get("title", ""),
+                                "source": r.get("source", ""),
+                                "url": r.get("url", "")
+                            })
+                except Exception as stream_err:
+                    print(f"Error crawling for query '{query}': {stream_err}")
+                    continue
         
         # Shuffle and slice to give "fresh" feel on reload
         random.shuffle(results)

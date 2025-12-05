@@ -1,4 +1,4 @@
-import { Box, useMediaQuery, useTheme } from "@mui/material";
+import { Box } from "@mui/material";
 import { Add } from "@mui/icons-material";
 import HTMLFlipBook from "react-pageflip";
 import Upload, { type UploadHandle } from "./Upload";
@@ -115,7 +115,6 @@ const StopPropagationWrapper = ({ children, onClick }: { children: React.ReactNo
 
 
 export default function Gallery() {
-    const theme = useTheme();
     // const isMobile = useMediaQuery(theme.breakpoints.down('md')); // Removed dependency on breakpoint for layout
     const [results, setResults] = useState<StoredResult[]>([]);
     const uploadRef = useRef<UploadHandle>(null);

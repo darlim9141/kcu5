@@ -16,18 +16,11 @@ import ListItem from "@mui/material/ListItem";
 import ListItemAvatar from "@mui/material/ListItemAvatar";
 import ListItemText from "@mui/material/ListItemText";
 import Avatar from "@mui/material/Avatar";
-import { styled } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialogContent-root": {
-    padding: theme.spacing(2),
-  },
-  "& .MuiDialogActions-root": {
-    padding: theme.spacing(1),
-  },
-}));
+
 
 const MAX_FILES = 5;
 
@@ -52,6 +45,7 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
   const [uploadProgress, setUploadProgress] = useState<Record<number, number>>({});
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const theme = useTheme();
 
   useImperativeHandle(ref, () => ({
     open: () => {
@@ -246,40 +240,50 @@ function generateUUID() {
 
   return (
     <div className="demoPage">
-      <BootstrapDialog
+      <Dialog
         onClose={handleClose}
         aria-labelledby="customized-dialog-title"
         open={open}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+            sx: {
+                borderRadius: '20px',
+                background: theme.palette.mode === 'dark' ? 'rgba(44, 44, 46, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+                backdropFilter: 'blur(20px)',
+                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.1)',
+                maxWidth: '500px',
+                p: 1
+            }
+        }}
       >
-        <DialogTitle sx={{ m: 0, p: 2 }} id="customized-dialog-title">
+        <DialogTitle sx={{ fontWeight: 700 }} id="customized-dialog-title">
           업로드
         </DialogTitle>
         <IconButton
           aria-label="close"
           onClick={handleClose}
-          sx={(theme) => ({
+          sx={{
             position: "absolute",
-            right: 8,
-            top: 8,
-            color: theme.palette.grey[500],
-          })}
+            right: 16,
+            top: 16,
+            color: (theme) => theme.palette.grey[500],
+          }}
         >
           <CloseIcon />
         </IconButton>
-        <DialogContent dividers>
+        <DialogContent>
           <Box
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             sx={{
               border: '2px dashed',
-              borderColor: isDragging ? 'primary.main' : 'grey.300',
-              borderRadius: 2,
+              borderColor: isDragging ? 'primary.main' : theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'grey.300',
+              borderRadius: '16px',
               p: 4,
               textAlign: 'center',
-              bgcolor: isDragging ? 'action.hover' : 'background.paper',
+              bgcolor: isDragging ? 'action.hover' : 'transparent',
               transition: 'all 0.2s',
               cursor: 'pointer',
               mb: 2,
@@ -294,12 +298,13 @@ function generateUUID() {
                 left: 0,
                 right: 0,
                 bottom: 0,
-                bgcolor: 'rgba(255,255,255,0.8)',
+                bgcolor: theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.8)',
                 zIndex: 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                flexDirection: 'column'
+                flexDirection: 'column',
+                borderRadius: '14px'
               }}>
                 <CircularProgress size={40} />
                 <Typography variant="caption" sx={{ mt: 1 }}>이미지 처리 중...</Typography>
@@ -314,7 +319,7 @@ function generateUUID() {
               onChange={handleFilesSelected}
               disabled={isProcessing}
             />
-            <Typography variant="h6" color={isDragging ? 'primary' : 'text.primary'} gutterBottom>
+            <Typography variant="h6" color={isDragging ? 'primary' : 'text.primary'} gutterBottom fontWeight={600}>
               {isDragging ? '여기에 놓아주세요!' : '이미지를 드래그하거나 클릭하여 선택하세요'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -331,7 +336,7 @@ function generateUUID() {
           )}
 
           {images.length > 0 ? (
-            <List sx={{ width: '100%', bgcolor: 'background.paper' }}>
+            <List sx={{ width: '100%', bgcolor: 'transparent' }}>
               {images.map((item, index) => (
                 <ListItem
                   key={`${item.preview}-${index}`}
@@ -342,17 +347,23 @@ function generateUUID() {
                       </IconButton>
                     )
                   }
+                  sx={{
+                      border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+                      borderRadius: '12px',
+                      mb: 1,
+                      bgcolor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'
+                  }}
                 >
                   <ListItemAvatar>
                     <Avatar
                       src={item.preview}
                       variant="rounded"
-                      sx={{ width: 56, height: 56, mr: 2 }}
+                      sx={{ width: 56, height: 56, mr: 2, borderRadius: '8px' }}
                     />
                   </ListItemAvatar>
                   <ListItemText
                     primary={
-                      <Typography variant="subtitle2" noWrap sx={{ maxWidth: 200 }}>
+                      <Typography variant="subtitle2" noWrap sx={{ maxWidth: 200, fontWeight: 600 }}>
                         {item.file.name}
                       </Typography>
                     }
@@ -361,7 +372,7 @@ function generateUUID() {
                         {isUploading ? (
                           <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Box sx={{ width: '100%', mr: 1 }}>
-                              <LinearProgress variant="determinate" value={uploadProgress[index] || 0} />
+                              <LinearProgress variant="determinate" value={uploadProgress[index] || 0} sx={{ borderRadius: 4, height: 6 }} />
                             </Box>
                             <Box sx={{ minWidth: 35 }}>
                               <Typography variant="body2" color="text.secondary">{`${Math.round(
@@ -390,19 +401,34 @@ function generateUUID() {
             </Typography>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button color="inherit" onClick={handleClose}>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button 
+            onClick={handleClose}
+            sx={{ 
+                color: 'text.secondary',
+                fontWeight: 600,
+                mr: 1
+            }}
+          >
             닫기
           </Button>
           <Button
             variant="contained"
             onClick={handleUpload}
             disabled={!images.length || isUploading}
+            sx={{ 
+                borderRadius: '10px',
+                boxShadow: 'none',
+                fontWeight: 600,
+                '&:hover': {
+                    boxShadow: 'none'
+                }
+            }}
           >
             {isUploading ? "업로드 중..." : "업로드"}
           </Button>
         </DialogActions>
-      </BootstrapDialog>
+      </Dialog>
     </div>
   );
 });

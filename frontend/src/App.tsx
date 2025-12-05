@@ -11,7 +11,7 @@ import { createContext, useMemo, useState, useEffect } from "react";
 export type ColorMode = 'light' | 'dark' | 'system';
 export const ColorModeContext = createContext({ 
   mode: 'system' as ColorMode,
-  setColorMode: (mode: ColorMode) => {} 
+  setColorMode: (_mode: ColorMode) => {} 
 });
 
 function App() {

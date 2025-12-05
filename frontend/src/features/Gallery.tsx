@@ -228,7 +228,7 @@ export default function Gallery() {
         setAutoOpenResults(true);
     };
 
-    const handleUploadResult = (result: StoredResult, rawResult: any) => {
+    const handleUploadResult = (result: StoredResult, _rawResult: any) => {
         // Add to results list immediately (Prepend for Newest First)
         setResults(prev => [result, ...prev]);
 

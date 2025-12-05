@@ -2,6 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Box, CircularProgress } from '@mui/material';
 import axios from 'axios';
 
+// 환경 변수 사용 (배포 시 필수!)
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 interface StyleFeedProps {
     style: string;
 }
@@ -10,7 +13,10 @@ const StyleFeed = ({ style }: StyleFeedProps) => {
     const [images, setImages] = useState<{ image: string, title: string, url: string }[]>([]);
     const [loading, setLoading] = useState(false);
     const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
-    const [page, setPage] = useState(1);
+    
+    // [수정 1] 사용하지 않는 page 변수 삭제함
+    // const [page, setPage] = useState(1); 
+
     const observerRef = useRef<IntersectionObserver | null>(null);
     const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
@@ -18,16 +24,15 @@ const StyleFeed = ({ style }: StyleFeedProps) => {
         if (loading) return;
         setLoading(true);
         try {
-            // Use the backend endpoint
-            // We re-fetch to get a new random set
-            const response = await axios.get(`http://localhost:8000/crawl/images`, {
-                params: { style }
+            // [수정 2] localhost 대신 환경 변수 API_URL 사용
+            const response = await axios.get(`${API_URL}/crawl/images`, {
+                params: { style } 
+                // 만약 나중에 백엔드에서 페이지네이션을 지원하면 여기에 page: pageNum 등을 추가하면 됩니다.
             });
             
             const newImages = response.data.images || [];
             
             setImages(prev => {
-                // Filter duplicates based on image URL
                 const existingUrls = new Set(prev.map(img => img.image));
                 const uniqueNewImages = newImages.filter((img: any) => !existingUrls.has(img.image));
                 return [...prev, ...uniqueNewImages];
@@ -38,15 +43,15 @@ const StyleFeed = ({ style }: StyleFeedProps) => {
         } finally {
             setLoading(false);
         }
-    }, [style]); // Remove loading dependency to avoid stale closure issues if managed carefully, but here we guard inside
+    }, [style]); // loading 의존성 제거됨 (무한 루프 방지)
 
     // Initial fetch
     useEffect(() => {
-        setImages([]); // Reset on style change
-        setFailedImages(new Set()); // Reset failed images
-        setPage(1);
+        setImages([]); 
+        setFailedImages(new Set()); 
+        // setPage(1); // [수정 3] 삭제
         fetchImages();
-    }, [style]);
+    }, [style, fetchImages]);
 
     // Infinite Scroll Observer
     useEffect(() => {
@@ -96,7 +101,7 @@ const StyleFeed = ({ style }: StyleFeedProps) => {
                 if (failedImages.has(img.image)) return null;
 
                 return (
-                <Box key={index} sx={{ 
+                <Box key={`${img.image}-${index}`} sx={{ 
                     breakInside: 'avoid', 
                     mb: 2, 
                     borderRadius: '16px', 

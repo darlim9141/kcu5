@@ -31,6 +31,9 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
 
 const MAX_FILES = 5;
 
+// [수정 1] 환경 변수에서 주소 가져오기 (없으면 로컬호스트 사용)
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
 export interface UploadHandle {
   open: () => void;
 }
@@ -66,14 +69,14 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
         const formData = new FormData();
         formData.append("file", file);
         
-        const response = await axios.post("http://localhost:8000/convert/preview", formData, {
+        // [수정 2] API_URL 변수 사용
+        const response = await axios.post(`${API_URL}/convert/preview`, formData, {
             headers: { "Content-Type": "multipart/form-data" },
         });
         
         return { file, preview: response.data.preview };
       } catch (e) {
         console.error("Preview generation failed:", e);
-        // Fallback or error? Let's show error for now.
         throw new Error("이미지 미리보기를 불러오지 못했습니다.");
       }
     }
@@ -159,11 +162,10 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
       return;
     }
     
-    // Notify start and close dialog immediately
     if (props.onUploadStart) {
         props.onUploadStart(images);
     }
-    setOpen(false); // Close the dialog immediately
+    setOpen(false); 
     
     setIsUploading(true);
     setUploadProgress({});
@@ -174,7 +176,8 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
         const formData = new FormData();
         formData.append("file", item.file);
 
-        const response = await axios.post("http://localhost:8000/predict/single", formData, {
+        // [수정 3] API_URL 변수 사용
+        const response = await axios.post(`${API_URL}/predict/single`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
           onUploadProgress: (progressEvent) => {
             if (progressEvent.total) {
@@ -202,7 +205,6 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
             rawResult: analysisResult
         };
 
-        // Save and notify immediately
         await saveResult(formattedResult);
         
         if (props.onResult) {
@@ -224,8 +226,6 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
       setImages([]);
     } catch (uploadError) {
       console.error(uploadError);
-      // Since dialog is closed, we might want to notify via a global snackbar or similar, 
-      // but for now we just log it. The individual items in Gallery will just hang or we need error handling there.
     } finally {
       setIsUploading(false);
       setUploadProgress({});
@@ -396,5 +396,3 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
 });
 
 export default Upload;
-
-

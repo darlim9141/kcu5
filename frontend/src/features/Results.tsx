@@ -211,6 +211,42 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
         >
             {/* Navigation Arrows - Removed as per user request */}
 
+            {/* Delete Button - Fixed at Top Right */}
+            {onDelete && (
+                <Box sx={{ position: 'fixed', top: 30, right: 30, zIndex: 1300 }}>
+                    <IconButton
+                        onClick={handleDelete}
+                        sx={{
+                            color: 'white',
+                            bgcolor: 'rgba(0,0,0,0.5)',
+                            '&:hover': { bgcolor: 'rgba(255,0,0,0.7)' },
+                            border: '1px solid rgba(255,255,255,0.3)',
+                            width: 56,
+                            height: 56,
+                        }}
+                    >
+                        <DeleteOutlineIcon fontSize="large" />
+                    </IconButton>
+                </Box>
+            )}
+
+            {/* Close Button - Fixed at Top Left */}
+            <Box sx={{ position: 'fixed', top: 30, left: 30, zIndex: 1300 }}>
+                <IconButton
+                    onClick={onClose}
+                    sx={{
+                        color: 'white',
+                        bgcolor: 'rgba(0,0,0,0.5)',
+                        '&:hover': { bgcolor: 'rgba(255,0,0,0.7)' },
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        width: 56,
+                        height: 56,
+                    }}
+                >
+                    <Close fontSize="large" />
+                </IconButton>
+            </Box>
+
             <DialogContent 
                 ref={contentRef}
                 sx={{ 
@@ -415,41 +451,7 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
                             </Accordion>
                         </Box>
 
-                        {/* Delete Button - Fixed at Top Right */}
-                        {onDelete && (
-                            <Box sx={{ position: 'fixed', top: 30, right: 30, zIndex: 1300 }}>
-                                <IconButton
-                                    onClick={handleDelete}
-                                    sx={{
-                                        color: 'white',
-                                        bgcolor: 'rgba(0,0,0,0.5)',
-                                        '&:hover': { bgcolor: 'rgba(255,0,0,0.7)' },
-                                        border: '1px solid rgba(255,255,255,0.3)',
-                                        width: 56,
-                                        height: 56,
-                                    }}
-                                >
-                                    <DeleteOutlineIcon fontSize="large" />
-                                </IconButton>
-                            </Box>
-                        )}
 
-                        {/* Close Button - Fixed at Top Left */}
-                        <Box sx={{ position: 'fixed', top: 30, left: 30, zIndex: 1300 }}>
-                            <IconButton
-                                onClick={onClose}
-                                sx={{
-                                    color: 'white',
-                                    bgcolor: 'rgba(0,0,0,0.5)',
-                                    '&:hover': { bgcolor: 'rgba(255,0,0,0.7)' },
-                                    border: '1px solid rgba(255,255,255,0.3)',
-                                    width: 56,
-                                    height: 56,
-                                }}
-                            >
-                                <Close fontSize="large" />
-                            </IconButton>
-                        </Box>
                     </Box>
                 )}
             </DialogContent>

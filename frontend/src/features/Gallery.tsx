@@ -127,6 +127,8 @@ export default function Gallery() {
     // Loading Overlay State
     const [loadingOverlayOpen, setLoadingOverlayOpen] = useState(false);
     const [uploadingImages, setUploadingImages] = useState<string[]>([]);
+    const [autoOpenResults, setAutoOpenResults] = useState(false);
+    const prevResultsLength = useRef(0);
 
     // Book Dimensions State
     // We now track scale instead of raw width/height for the book itself
@@ -220,6 +222,10 @@ export default function Gallery() {
         // Clear previous selection for new batch
         setSelectedResults([]);
         setSelectedRawResults([]);
+        
+        // Prepare for auto-opening results
+        prevResultsLength.current = results.length;
+        setAutoOpenResults(true);
     };
 
     const handleUploadResult = (result: StoredResult, rawResult: any) => {
@@ -234,12 +240,23 @@ export default function Gallery() {
     const handleUploadComplete = () => {
         // Hide overlay
         setLoadingOverlayOpen(false);
-        // Optionally open modal with the new results? 
-        // For now, let's just close overlay and let user browse.
-        // If we want to auto-open:
-        // handleItemClick(results[results.length - 1]); 
-        // But results state update might be async.
     };
+
+    // Auto-open results when upload finishes
+    useEffect(() => {
+        if (!loadingOverlayOpen && autoOpenResults) {
+            // Check if we have new results
+            if (results.length > prevResultsLength.current) {
+                // Open the first of the new results
+                const firstNewItemIndex = prevResultsLength.current;
+                const itemToOpen = results[firstNewItemIndex];
+                if (itemToOpen) {
+                    handleItemClick(itemToOpen);
+                }
+            }
+            setAutoOpenResults(false);
+        }
+    }, [loadingOverlayOpen, autoOpenResults, results]);
 
     const handleDeleteResult = async (id: string) => {
         await deleteResult(id);

@@ -1,6 +1,6 @@
 import { Box, Dialog, DialogContent, IconButton, Typography, useMediaQuery, useTheme, Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
-import { Close, ArrowBackIosNew, ArrowForwardIos, ExpandMore, DeleteOutline as DeleteOutlineIcon } from "@mui/icons-material";
-import { useEffect, useState, useRef } from "react";
+import { Close, ExpandMore, DeleteOutline as DeleteOutlineIcon } from "@mui/icons-material";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import ClusterMap from "../components/ClusterMap";
 import polaroidEffect from "../assets/polaroid_effect.jpg";
@@ -22,16 +22,45 @@ interface ResultsModalProps {
     onDelete?: (id: string) => void;
     results: AnalysisResult[];
     rawResults?: any[];
+    initialIndex?: number;
 }
 
-export default function ResultsModal({ open, onClose, onDelete, results, rawResults }: ResultsModalProps) {
+export default function ResultsModal({ open, onClose, onDelete, results, rawResults, initialIndex = 0 }: ResultsModalProps) {
     const theme = useTheme();
     const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
     const [graphData, setGraphData] = useState([]);
-    const [currentIndex, setCurrentIndex] = useState(0);
+    const [currentIndex, setCurrentIndex] = useState(initialIndex);
     const [imageOrientation, setImageOrientation] = useState<'landscape' | 'portrait' | 'square'>('square');
     const [expanded, setExpanded] = useState(true); // Default expanded
     const contentRef = useRef<HTMLDivElement>(null);
+
+    // Swipe state
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
+    const minSwipeDistance = 50;
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+        
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        if (isLeftSwipe) {
+            handleNext();
+        } else if (isRightSwipe) {
+            handlePrev();
+        }
+    };
 
     const categories = ['street', 'minimal', 'casual', 'classic'];
     const categoryKo: Record<string, string> = {
@@ -43,10 +72,10 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
 
     useEffect(() => {
         if (open) {
-            setCurrentIndex(0);
+            setCurrentIndex(initialIndex);
             setExpanded(false); // Start closed by default
         }
-    }, [open]);
+    }, [open, initialIndex]);
 
     // Auto-scroll logic
     useEffect(() => {
@@ -86,21 +115,48 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
             .catch(err => console.error("Failed to load graph data:", err));
     }, []);
 
-    const handleDelete = () => {
+    const handleDelete = useCallback(() => {
         if (onDelete && results.length > 0) {
             if (window.confirm("정말 이 결과를 삭제하시겠습니까?")) {
                 onDelete(results[currentIndex].id);
             }
         }
-    };
+    }, [onDelete, results, currentIndex]);
 
-    const handleNext = () => {
+    const handleNext = useCallback(() => {
         setCurrentIndex((prev) => (prev + 1) % results.length);
-    };
+    }, [results.length]);
 
-    const handlePrev = () => {
+    const handlePrev = useCallback(() => {
         setCurrentIndex((prev) => (prev - 1 + results.length) % results.length);
-    };
+    }, [results.length]);
+
+    // Keyboard Navigation
+    useEffect(() => {
+        if (!open) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            switch (e.key) {
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handlePrev();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleNext();
+                    break;
+                case 'Delete':
+                case 'Backspace': // Also support Backspace for convenience
+                    handleDelete();
+                    break;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown, { capture: true });
+        return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
+    }, [open, handleNext, handlePrev, handleDelete]);
 
     const currentResult = results[currentIndex];
     const currentRawResult = rawResults ? rawResults[currentIndex] : null;
@@ -153,41 +209,7 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
                 }
             }}
         >
-            {/* Navigation Arrows - Fixed Position relative to Dialog */}
-            {results.length > 1 && (
-                <>
-                    <IconButton
-                        onClick={handlePrev}
-                        sx={{
-                            position: 'absolute',
-                            left: { xs: 0, md: -60 },
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            zIndex: 10,
-                            color: 'white',
-                            bgcolor: 'rgba(0,0,0,0.3)',
-                            '&:hover': { bgcolor: 'rgba(0,0,0,0.5)' },
-                        }}
-                    >
-                        <ArrowBackIosNew />
-                    </IconButton>
-                    <IconButton
-                        onClick={handleNext}
-                        sx={{
-                            position: 'absolute',
-                            right: { xs: 0, md: -60 },
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            zIndex: 10,
-                            color: 'white',
-                            bgcolor: 'rgba(0,0,0,0.3)',
-                            '&:hover': { bgcolor: 'rgba(0,0,0,0.5)' },
-                        }}
-                    >
-                        <ArrowForwardIos />
-                    </IconButton>
-                </>
-            )}
+            {/* Navigation Arrows - Removed as per user request */}
 
             <DialogContent 
                 ref={contentRef}
@@ -195,11 +217,16 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
                 p: 0, 
                 display: 'flex', 
                 justifyContent: 'center', 
-                alignItems: 'flex-start', // Align to top to allow scrolling down
-                overflowY: expanded ? 'auto' : 'hidden', // Lock scroll when collapsed
+                alignItems: 'center', // Align to top to allow scrolling down
+                overflow: 'hidden', // Lock scroll when collapsed
+                position: 'relative',
                 mt: { xs: 14, md: 0 }, // Use margin instead of padding to push scroll container down
                 height: { xs: 'calc(100% - 112px)', md: '100%' } // Adjust height to account for margin
-            }}>
+            }}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+            >
                 {!currentResult ? (
                     <Box sx={{ bgcolor: 'white', p: 4, borderRadius: 1 }}>
                         <Typography sx={{ color: 'black' }}>결과를 불러오는 중...</Typography>

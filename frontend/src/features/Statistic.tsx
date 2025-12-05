@@ -104,12 +104,19 @@ const Statistic = () => {
     return (
         <Box sx={{ 
             height: '100%', 
-            p: { xs: 2, md: 4 }, 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
+            overflowY: 'auto',
             bgcolor: '#f5f5f7' // iOS-like background
         }}>
+            <Box sx={{ 
+                minHeight: '100%',
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                pt: { xs: 10, md: 12 }, 
+                pb: { xs: 2, md: 4 }, 
+                px: { xs: 2, md: 4 },
+                boxSizing: 'border-box'
+            }}>
             <Box sx={{ 
                 width: '100%', 
                 maxWidth: '1400px', 
@@ -220,6 +227,7 @@ const Statistic = () => {
                         ))}
                     </Box>
                 </Box>
+            </Box>
             </Box>
         </Box>
     );

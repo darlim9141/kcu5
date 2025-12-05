@@ -229,8 +229,8 @@ export default function Gallery() {
     };
 
     const handleUploadResult = (result: StoredResult, rawResult: any) => {
-        // Add to results list immediately
-        setResults(prev => [...prev, result]);
+        // Add to results list immediately (Prepend for Newest First)
+        setResults(prev => [result, ...prev]);
 
         // We don't update selectedResults here anymore as it's generated on click
         // But if we wanted to show the result immediately after upload, we would need to handle it.
@@ -247,9 +247,8 @@ export default function Gallery() {
         if (!loadingOverlayOpen && autoOpenResults) {
             // Check if we have new results
             if (results.length > prevResultsLength.current) {
-                // Open the first of the new results
-                const firstNewItemIndex = prevResultsLength.current;
-                const itemToOpen = results[firstNewItemIndex];
+                // Open the first item (Newest First)
+                const itemToOpen = results[0];
                 if (itemToOpen) {
                     handleItemClick(itemToOpen);
                 }

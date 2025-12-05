@@ -5,7 +5,7 @@
     color: #785e3a;
     border: solid 1px #c2b5a3;
     overflow: hidden;
-    position: relative; /* Ensure positioning context for overlay */
+    /* position: relative; Ensure positioning context for overlay */
 }
 
 .paper-texture::after {

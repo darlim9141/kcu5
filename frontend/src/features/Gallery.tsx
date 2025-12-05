@@ -284,10 +284,10 @@ export default function Gallery() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            minHeight: "100vh",
+            minHeight: "100dvh", // Use dvh for mobile browsers
             width: "100vw",
-            pt: "80px", // Increased top padding for menu
-            pb: 2,
+            pt: { xs: '60px', md: '80px' }, // Reduced top padding on mobile
+            pb: { xs: '60px', md: 2 }, // Add bottom padding on mobile to balance top padding
             px: 2,
             boxSizing: "border-box",
             overflow: "hidden" // Prevent scrollbars

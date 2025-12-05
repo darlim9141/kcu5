@@ -6,7 +6,7 @@ export interface StoredResult {
   label: string;
   confidence: number;
   timestamp: string;
-  recommendations?: string[];
+
   accessories?: string[];
   rawResult?: any;
 }
@@ -59,16 +59,16 @@ export const getResults = async (): Promise<StoredResult[]> => {
 };
 
 export const clearResults = async () => {
-    const db = await getDB();
-    await db.clear(STORE_NAME);
+  const db = await getDB();
+  await db.clear(STORE_NAME);
 };
 
 export const deleteResult = async (id: string) => {
-    try {
-        const db = await getDB();
-        await db.delete(STORE_NAME, id);
-    } catch (error) {
-        console.error("Failed to delete result from IndexedDB:", error);
-        throw error;
-    }
+  try {
+    const db = await getDB();
+    await db.delete(STORE_NAME, id);
+  } catch (error) {
+    console.error("Failed to delete result from IndexedDB:", error);
+    throw error;
+  }
 };

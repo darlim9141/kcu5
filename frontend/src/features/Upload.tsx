@@ -41,13 +41,13 @@ export interface UploadHandle {
 interface UploadProps {
   onComplete?: () => void;
   onResult?: (result: any, rawResult: any, index: number) => void;
-  onUploadStart?: (files: {file: File, preview: string}[]) => void;
+  onUploadStart?: (files: { file: File, preview: string }[]) => void;
   onProgress?: (index: number, progress: number) => void;
 }
 
 const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
   const [open, setOpen] = useState(false);
-  const [images, setImages] = useState<{file: File, preview: string}[]>([]);
+  const [images, setImages] = useState<{ file: File, preview: string }[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<number, number>>({});
   const [error, setError] = useState<string | null>(null);
@@ -62,18 +62,18 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
 
   const remainingSlots = useMemo(() => MAX_FILES - images.length, [images.length]);
 
-  const getFilePreview = async (file: File): Promise<{file: File, preview: string}> => {
+  const getFilePreview = async (file: File): Promise<{ file: File, preview: string }> => {
     // Check if file is HEIC
     if (file.type === "image/heic" || file.type === "image/heif" || file.name.toLowerCase().endsWith(".heic")) {
       try {
         const formData = new FormData();
         formData.append("file", file);
-        
+
         // [수정 2] API_URL 변수 사용
         const response = await axios.post(`${API_URL}/convert/preview`, formData, {
-            headers: { "Content-Type": "multipart/form-data" },
+          headers: { "Content-Type": "multipart/form-data" },
         });
-        
+
         return { file, preview: response.data.preview };
       } catch (e) {
         console.error("Preview generation failed:", e);
@@ -82,7 +82,7 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
     }
 
     // For other images, use local FileReader
-    return new Promise<{file: File, preview: string}>((resolve, reject) => {
+    return new Promise<{ file: File, preview: string }>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve({ file, preview: reader.result as string });
       reader.onerror = () => reject(new Error("Failed to read file"));
@@ -110,11 +110,11 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const fileList = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/') || file.name.toLowerCase().endsWith('.heic'));
-    
+
     if (!fileList.length) return;
-    
+
     processFiles(fileList);
   };
 
@@ -138,7 +138,7 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
       const nextImages = await Promise.all(usableFiles.map(getFilePreview));
       setImages((prev) => [...prev, ...nextImages]);
     } catch (e) {
-        console.error(e);
+      console.error(e);
       setError("파일을 처리하는 중 문제가 발생했습니다.");
     } finally {
       setIsProcessing(false);
@@ -161,12 +161,12 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
       setError("업로드할 이미지를 먼저 선택해 주세요.");
       return;
     }
-    
+
     if (props.onUploadStart) {
-        props.onUploadStart(images);
+      props.onUploadStart(images);
     }
-    setOpen(false); 
-    
+    setOpen(false);
+
     setIsUploading(true);
     setUploadProgress({});
     setError(null);
@@ -187,7 +187,7 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
                 [index]: percentCompleted,
               }));
               if (props.onProgress) {
-                  props.onProgress(index, percentCompleted);
+                props.onProgress(index, percentCompleted);
               }
             }
           },
@@ -195,20 +195,20 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
 
         const analysisResult = response.data;
         const formattedResult = {
-            id: crypto.randomUUID(),
-            imageUrl: item.preview,
-            label: analysisResult.classification.category,
-            confidence: analysisResult.classification.confidence / 100,
-            timestamp: new Date().toISOString(),
-            recommendations: analysisResult.recommendations,
-            accessories: analysisResult.accessories,
-            rawResult: analysisResult
+          id: crypto.randomUUID(),
+          imageUrl: item.preview,
+          label: analysisResult.classification.category,
+          confidence: analysisResult.classification.confidence / 100,
+          timestamp: new Date().toISOString(),
+
+          accessories: analysisResult.accessories,
+          rawResult: analysisResult
         };
 
         await saveResult(formattedResult);
-        
+
         if (props.onResult) {
-            props.onResult(formattedResult, analysisResult, index);
+          props.onResult(formattedResult, analysisResult, index);
         }
 
         return {
@@ -218,11 +218,11 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
       });
 
       await Promise.all(uploadPromises);
-      
+
       if (props.onComplete) {
         props.onComplete();
       }
-      
+
       setImages([]);
     } catch (uploadError) {
       console.error(uploadError);
@@ -276,37 +276,37 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
             onClick={() => !isProcessing && fileInputRef.current?.click()}
           >
             {isProcessing && (
-                <Box sx={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    bgcolor: 'rgba(255,255,255,0.8)',
-                    zIndex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'column'
-                }}>
-                    <CircularProgress size={40} />
-                    <Typography variant="caption" sx={{ mt: 1 }}>이미지 처리 중...</Typography>
-                </Box>
+              <Box sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                bgcolor: 'rgba(255,255,255,0.8)',
+                zIndex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'column'
+              }}>
+                <CircularProgress size={40} />
+                <Typography variant="caption" sx={{ mt: 1 }}>이미지 처리 중...</Typography>
+              </Box>
             )}
             <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,.heic"
-                multiple
-                hidden
-                onChange={handleFilesSelected}
-                disabled={isProcessing}
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,.heic"
+              multiple
+              hidden
+              onChange={handleFilesSelected}
+              disabled={isProcessing}
             />
             <Typography variant="h6" color={isDragging ? 'primary' : 'text.primary'} gutterBottom>
-                {isDragging ? '여기에 놓아주세요!' : '이미지를 드래그하거나 클릭하여 선택하세요'}
+              {isDragging ? '여기에 놓아주세요!' : '이미지를 드래그하거나 클릭하여 선택하세요'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-                {remainingSlots > 0
+              {remainingSlots > 0
                 ? `최대 ${remainingSlots}장 더 추가 가능`
                 : "최대 개수에 도달했습니다"}
             </Typography>
@@ -332,37 +332,37 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
                   }
                 >
                   <ListItemAvatar>
-                    <Avatar 
-                        src={item.preview} 
-                        variant="rounded" 
-                        sx={{ width: 56, height: 56, mr: 2 }}
+                    <Avatar
+                      src={item.preview}
+                      variant="rounded"
+                      sx={{ width: 56, height: 56, mr: 2 }}
                     />
                   </ListItemAvatar>
                   <ListItemText
                     primary={
-                        <Typography variant="subtitle2" noWrap sx={{ maxWidth: 200 }}>
-                            {item.file.name}
-                        </Typography>
+                      <Typography variant="subtitle2" noWrap sx={{ maxWidth: 200 }}>
+                        {item.file.name}
+                      </Typography>
                     }
                     secondary={
-                        <Box sx={{ width: '100%', mt: 1 }}>
-                            {isUploading ? (
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <Box sx={{ width: '100%', mr: 1 }}>
-                                        <LinearProgress variant="determinate" value={uploadProgress[index] || 0} />
-                                    </Box>
-                                    <Box sx={{ minWidth: 35 }}>
-                                        <Typography variant="body2" color="text.secondary">{`${Math.round(
-                                            uploadProgress[index] || 0,
-                                        )}%`}</Typography>
-                                    </Box>
-                                </Box>
-                            ) : (
-                                <Typography variant="caption" color="text.secondary">
-                                    {(item.file.size / 1024 / 1024).toFixed(2)} MB
-                                </Typography>
-                            )}
-                        </Box>
+                      <Box sx={{ width: '100%', mt: 1 }}>
+                        {isUploading ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Box sx={{ width: '100%', mr: 1 }}>
+                              <LinearProgress variant="determinate" value={uploadProgress[index] || 0} />
+                            </Box>
+                            <Box sx={{ minWidth: 35 }}>
+                              <Typography variant="body2" color="text.secondary">{`${Math.round(
+                                uploadProgress[index] || 0,
+                              )}%`}</Typography>
+                            </Box>
+                          </Box>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            {(item.file.size / 1024 / 1024).toFixed(2)} MB
+                          </Typography>
+                        )}
+                      </Box>
                     }
                   />
                 </ListItem>
@@ -370,11 +370,11 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
             </List>
           ) : (
             <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ textAlign: "center", mt: 4, mb: 2 }}
+              variant="body2"
+              color="text.secondary"
+              sx={{ textAlign: "center", mt: 4, mb: 2 }}
             >
-                아직 업로드된 이미지가 없어요.
+              아직 업로드된 이미지가 없어요.
             </Typography>
           )}
         </DialogContent>

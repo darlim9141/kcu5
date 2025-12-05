@@ -11,65 +11,65 @@ import paperTexture from "../assets/paper_texture.jpg";
 import spiralTexture from "../assets/spirals.jpg";
 
 interface PageProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
-  number?: number;
+    children: React.ReactNode;
+    number?: number;
 }
 
 const Page = forwardRef<HTMLDivElement, PageProps>((props, ref) => {
-  const { children, number, style, className, ...rest } = props;
-  const isEven = number ? number % 2 === 0 : false;
-  const spiralWidth = '25px'; // Reduced width
+    const { children, number, style, className, ...rest } = props;
+    const isEven = number ? number % 2 === 0 : false;
+    const spiralWidth = '25px'; // Reduced width
 
-  return (
-    <div 
-        className={`demoPage ${className || ''}`} 
-        style={style} 
-        ref={ref} 
-        {...rest}
-    >
-      <Box sx={{ 
-          position: "relative", 
-          height: "100%", 
-          p: 2,
-          // Add padding to content to avoid spiral overlap
-          [isEven ? 'pl' : 'pr']: `calc(16px + ${spiralWidth})` 
-      }}>
-        {children}
-      </Box>
-      {/* Texture Overlay */}
-      <div 
-        style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            backgroundImage: `url(${paperTexture})`,
-            backgroundSize: 'cover',
-            // mixBlendMode: 'multiply', // Removed to prevent 3D rendering issues
-            pointerEvents: 'none',
-            opacity: 0.1, // Reduced opacity since we're not blending
-            zIndex: 2
-        }}
-      />
-      {/* Spiral Binding Overlay */}
-      <div
-        style={{
-            position: 'absolute',
-            top: 0,
-            [isEven ? 'left' : 'right']: 0,
-            width: spiralWidth,
-            height: '100%',
-            backgroundImage: `url(${spiralTexture})`,
-            backgroundSize: '100% 100%', // Stretch to fit the narrow width (effectively cropping/squashing slightly but maintaining look)
-            transform: isEven ? 'scaleX(-1)' : 'none',
-            zIndex: 20,
-            pointerEvents: 'none',
-            mixBlendMode: 'multiply' // Make white background transparent
-        }}
-      />
-    </div>
-  );
+    return (
+        <div
+            className={`demoPage ${className || ''}`}
+            style={style}
+            ref={ref}
+            {...rest}
+        >
+            <Box sx={{
+                position: "relative",
+                height: "100%",
+                p: 2,
+                // Add padding to content to avoid spiral overlap
+                [isEven ? 'pl' : 'pr']: `calc(16px + ${spiralWidth})`
+            }}>
+                {children}
+            </Box>
+            {/* Texture Overlay */}
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundImage: `url(${paperTexture})`,
+                    backgroundSize: 'cover',
+                    // mixBlendMode: 'multiply', // Removed to prevent 3D rendering issues
+                    pointerEvents: 'none',
+                    opacity: 0.1, // Reduced opacity since we're not blending
+                    zIndex: 2
+                }}
+            />
+            {/* Spiral Binding Overlay */}
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    [isEven ? 'left' : 'right']: 0,
+                    width: spiralWidth,
+                    height: '100%',
+                    backgroundImage: `url(${spiralTexture})`,
+                    backgroundSize: '100% 100%', // Stretch to fit the narrow width (effectively cropping/squashing slightly but maintaining look)
+                    transform: isEven ? 'scaleX(-1)' : 'none',
+                    zIndex: 20,
+                    pointerEvents: 'none',
+                    mixBlendMode: 'multiply' // Make white background transparent
+                }}
+            />
+        </div>
+    );
 });
 
 // Helper component to stop native event propagation
@@ -118,7 +118,7 @@ export default function Gallery() {
     // const isMobile = useMediaQuery(theme.breakpoints.down('md')); // Removed dependency on breakpoint for layout
     const [results, setResults] = useState<StoredResult[]>([]);
     const uploadRef = useRef<UploadHandle>(null);
-    
+
     // Modal State
     const [modalOpen, setModalOpen] = useState(false);
     const [selectedResults, setSelectedResults] = useState<AnalysisResult[]>([]);
@@ -130,9 +130,9 @@ export default function Gallery() {
 
     // Book Dimensions State
     // We now track scale instead of raw width/height for the book itself
-    const [layoutState, setLayoutState] = useState({ 
-        scale: 1, 
-        isPortrait: false 
+    const [layoutState, setLayoutState] = useState({
+        scale: 1,
+        isPortrait: false
     });
     const [page, setPage] = useState(0); // Track current page
 
@@ -150,9 +150,9 @@ export default function Gallery() {
         // Reduced padding to maximize screen usage
         const paddingX = 32; // 16px * 2
         // Increased top padding to avoid menu overlap (approx 64px for AppBar + extra)
-        const paddingY = 32; 
+        const paddingY = 32;
         const topOffset = 80; // Space for menu
-        
+
         const availableWidth = window.innerWidth - paddingX;
         const availableHeight = window.innerHeight - paddingY - topOffset;
 
@@ -169,12 +169,12 @@ export default function Gallery() {
         // Portrait: 1 Page (800)
         // Landscape: 2 Pages (1600)
         const targetBaseWidth = isPortraitMode ? BASE_PAGE_WIDTH : BASE_PAGE_WIDTH * 2;
-        
+
         // Calculate Scale
         // We need to fit targetBaseWidth x BASE_PAGE_HEIGHT into availableWidth x availableHeight
         const scaleX = availableWidth / targetBaseWidth;
         const scaleY = availableHeight / BASE_PAGE_HEIGHT;
-        
+
         // Use the smaller scale to ensure it fits entirely
         const scale = Math.min(scaleX, scaleY);
 
@@ -198,14 +198,13 @@ export default function Gallery() {
             label: item.label,
             confidence: item.confidence,
             description: item.timestamp ? new Date(item.timestamp).toLocaleString() : undefined,
-            recommendations: item.recommendations,
             accessories: item.accessories
         }]);
         setSelectedRawResults([item.rawResult]);
         setModalOpen(true);
     };
 
-    const handleUploadStart = (files: {file: File, preview: string}[]) => {
+    const handleUploadStart = (files: { file: File, preview: string }[]) => {
         setUploadingImages(files.map(f => f.preview));
         setLoadingOverlayOpen(true);
         // Clear previous selection for new batch
@@ -216,7 +215,7 @@ export default function Gallery() {
     const handleUploadResult = (result: StoredResult, rawResult: any) => {
         // Add to results list immediately
         setResults(prev => [...prev, result]);
-        
+
         // Add to modal selection (accumulate results)
         const mappedResult = {
             id: result.id,
@@ -224,10 +223,10 @@ export default function Gallery() {
             label: result.label,
             confidence: result.confidence,
             description: result.timestamp ? new Date(result.timestamp).toLocaleString() : undefined,
-            recommendations: result.recommendations,
+
             accessories: result.accessories
         };
-        
+
         setSelectedResults(prev => [...prev, mappedResult]);
         setSelectedRawResults(prev => [...prev, rawResult]);
     };
@@ -259,13 +258,13 @@ export default function Gallery() {
     };
 
     const ITEMS_PER_PAGE = 20;
-    
+
     // Grid Logic:
     // Slot 0: Add Button (Fixed)
     // Slot 1: "Add Photos" Label (Fixed)
     // Slot 2, 4, 6...: Metadata (Date/Time)
     // Slot 3, 5, 7...: Photo
-    
+
     // Each result takes 2 slots.
     // Total slots needed = 2 (Fixed) + (Results.length * 2)
     const totalSlots = 2 + (results.length * 2);
@@ -290,23 +289,23 @@ export default function Gallery() {
             overflow: "hidden" // Prevent scrollbars
         }}>
             {/* Hidden Upload Component to handle dialog */}
-            <Upload 
-                ref={uploadRef} 
+            <Upload
+                ref={uploadRef}
                 onUploadStart={handleUploadStart}
-                onResult={handleUploadResult} 
-                onComplete={handleUploadComplete} 
+                onResult={handleUploadResult}
+                onComplete={handleUploadComplete}
             />
-            
+
             <LoadingOverlay open={loadingOverlayOpen} images={uploadingImages} />
 
-            <ResultsModal 
-                open={modalOpen} 
-                onClose={handleModalClose} 
+            <ResultsModal
+                open={modalOpen}
+                onClose={handleModalClose}
                 onDelete={handleDeleteResult}
                 results={selectedResults}
                 rawResults={selectedRawResults}
             />
-            
+
             {/* Wrapper for responsive resizing */}
             <div style={{
                 // The wrapper needs to be the size of the SCALED book to take up correct space in the flex container
@@ -355,93 +354,93 @@ export default function Gallery() {
                         showPageCorners={false} // Disable hover animation (peeling)
                         disableFlipByClick={modalOpen}
                     >
-                    {Array.from({ length: pagesToRender }).map((_, pageIndex) => (
-                        <Page key={pageIndex} number={pageIndex + 1}>
-                            <div className="grid-page">
-                                {Array.from({ length: ITEMS_PER_PAGE }).map((_, itemIndex) => {
-                                    const globalIndex = pageIndex * ITEMS_PER_PAGE + itemIndex;
-                                    let content;
-                                    let onClick = undefined;
-                                    let style: React.CSSProperties = {};
+                        {Array.from({ length: pagesToRender }).map((_, pageIndex) => (
+                            <Page key={pageIndex} number={pageIndex + 1}>
+                                <div className="grid-page">
+                                    {Array.from({ length: ITEMS_PER_PAGE }).map((_, itemIndex) => {
+                                        const globalIndex = pageIndex * ITEMS_PER_PAGE + itemIndex;
+                                        let content;
+                                        let onClick = undefined;
+                                        let style: React.CSSProperties = {};
 
-                                    if (globalIndex === 0) {
-                                        // Slot 0: Add Button
-                                        content = <Add sx={{ fontSize: 40, color: "#ccc" }} />;
-                                        onClick = handleAddClick;
-                                        style = { cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f5f5f5' };
-                                    } else if (globalIndex === 1) {
-                                        // Slot 1: Label
-                                        content = "Add Photos";
-                                        style = { display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#666' };
-                                    } else {
-                                        // Results start from index 2
-                                        // Result Index = (Global Index - 2) / 2
-                                        // If even (2, 4, 6...), it's Metadata (Result Index = (2-2)/2 = 0, (4-2)/2 = 1)
-                                        // If odd (3, 5, 7...), it's Photo (Result Index = (3-2)/2 = 0.5 -> same result)
-                                        
-                                        const adjustedIndex = globalIndex - 2;
-                                        const resultIndex = Math.floor(adjustedIndex / 2);
-                                        // User wants Photo first, then Metadata.
-                                        // Slot 2 (Adj 0): Photo
-                                        // Slot 3 (Adj 1): Metadata
-                                        const isMeta = adjustedIndex % 2 !== 0;
-
-                                        if (resultIndex < results.length) {
-                                            const item = results[resultIndex];
-
-                                            if (isMeta) {
-                                                // Metadata Slot
-                                                const date = item.timestamp ? new Date(item.timestamp) : new Date();
-                                                content = (
-                                                    <div style={{ fontSize: "12px", textAlign: "center", padding: '4px', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
-                                                        <div style={{ fontWeight: 'bold' }}>{date.toLocaleDateString()}</div>
-                                                        <div style={{ color: '#666' }}>{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                                                    </div>
-                                                );
-                                            } else {
-                                            // Photo Slot
-                                            const storedItem = item as StoredResult;
-                                            content = (
-                                                <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
-                                                    <img 
-                                                        src={storedItem.imageUrl} 
-                                                        alt={storedItem.label} 
-                                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                                                    />
-                                                </div>
-                                            );
-                                            
-                                            // Use the wrapper to handle click and stop propagation natively
-                                            content = (
-                                                <StopPropagationWrapper onClick={() => handleItemClick(storedItem)}>
-                                                    {content}
-                                                </StopPropagationWrapper>
-                                            );
-                                            
-                                            style = {}; 
-                                            }
+                                        if (globalIndex === 0) {
+                                            // Slot 0: Add Button
+                                            content = <Add sx={{ fontSize: 40, color: "#ccc" }} />;
+                                            onClick = handleAddClick;
+                                            style = { cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f5f5f5' };
+                                        } else if (globalIndex === 1) {
+                                            // Slot 1: Label
+                                            content = "Add Photos";
+                                            style = { display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#666' };
                                         } else {
-                                            // Empty slot
-                                            content = null;
-                                        }
-                                    }
+                                            // Results start from index 2
+                                            // Result Index = (Global Index - 2) / 2
+                                            // If even (2, 4, 6...), it's Metadata (Result Index = (2-2)/2 = 0, (4-2)/2 = 1)
+                                            // If odd (3, 5, 7...), it's Photo (Result Index = (3-2)/2 = 0.5 -> same result)
 
-                                    return (
-                                        <div 
-                                            className="grid-item" 
-                                            key={itemIndex} 
-                                            // onClick is handled inside content for photos
-                                            onClick={globalIndex === 0 ? onClick : undefined}
-                                            style={style}
-                                        >
-                                            {content}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </Page>
-                    ))}
-                </HTMLFlipBook>
+                                            const adjustedIndex = globalIndex - 2;
+                                            const resultIndex = Math.floor(adjustedIndex / 2);
+                                            // User wants Photo first, then Metadata.
+                                            // Slot 2 (Adj 0): Photo
+                                            // Slot 3 (Adj 1): Metadata
+                                            const isMeta = adjustedIndex % 2 !== 0;
+
+                                            if (resultIndex < results.length) {
+                                                const item = results[resultIndex];
+
+                                                if (isMeta) {
+                                                    // Metadata Slot
+                                                    const date = item.timestamp ? new Date(item.timestamp) : new Date();
+                                                    content = (
+                                                        <div style={{ fontSize: "12px", textAlign: "center", padding: '4px', display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
+                                                            <div style={{ fontWeight: 'bold' }}>{date.toLocaleDateString()}</div>
+                                                            <div style={{ color: '#666' }}>{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                                        </div>
+                                                    );
+                                                } else {
+                                                    // Photo Slot
+                                                    const storedItem = item as StoredResult;
+                                                    content = (
+                                                        <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
+                                                            <img
+                                                                src={storedItem.imageUrl}
+                                                                alt={storedItem.label}
+                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                            />
+                                                        </div>
+                                                    );
+
+                                                    // Use the wrapper to handle click and stop propagation natively
+                                                    content = (
+                                                        <StopPropagationWrapper onClick={() => handleItemClick(storedItem)}>
+                                                            {content}
+                                                        </StopPropagationWrapper>
+                                                    );
+
+                                                    style = {};
+                                                }
+                                            } else {
+                                                // Empty slot
+                                                content = null;
+                                            }
+                                        }
+
+                                        return (
+                                            <div
+                                                className="grid-item"
+                                                key={itemIndex}
+                                                // onClick is handled inside content for photos
+                                                onClick={globalIndex === 0 ? onClick : undefined}
+                                                style={style}
+                                            >
+                                                {content}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </Page>
+                        ))}
+                    </HTMLFlipBook>
                 </div>
             </div>
         </Box>

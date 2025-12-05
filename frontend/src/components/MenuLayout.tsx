@@ -59,7 +59,7 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
                         borderRadius: 3,
                         paddingTop: "60px",
                         p: 1.5,
-                        color: "#1c1c1e",
+                        color: "#333333",
                         background: "rgba(255,255,255,0.12)",
                         border: "1px solid rgba(255,255,255,0.25)",
                         backdropFilter: "blur(10px)",
@@ -71,23 +71,23 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
                     <Box sx={{ flex: 1 }}>
                         <List>
                             <ListItemButton component={RouterLink} to ="/gallery" onClick={() => setOpen(false)}>
-                                <ListItemIcon><Image /></ListItemIcon>
+                                <ListItemIcon sx={{ color: "#333333" }}><Image /></ListItemIcon>
                                 <ListItemText primary="갤러리" />
                             </ListItemButton>
                             <ListItemButton component={RouterLink} to = "/statistic" onClick={() => setOpen(false)}>
-                                <ListItemIcon><BarChart /></ListItemIcon>
+                                <ListItemIcon sx={{ color: "#333333" }}><BarChart /></ListItemIcon>
                                 <ListItemText primary="통계" />                             
                             </ListItemButton>
                             <ListItemButton component={RouterLink} to="/settings" onClick={() => setOpen(false)}>
-                                <ListItemIcon><Settings /></ListItemIcon>
+                                <ListItemIcon sx={{ color: "#333333" }}><Settings /></ListItemIcon>
                                 <ListItemText primary="설정" />
                             </ListItemButton>
                         </List>
                     </Box>
                     <Divider />
                     <Box sx={{ display: "flex", gap: 1.5, p:2 }}>
-                        <MLink href="https://www.instagram.com/kcu_madison/" target="_blank" color="#666666ff" underline="none"><Instagram /></MLink>
-                        <MLink href="https://github.com/darlim9141/kcu5" target="_blank" color="#666666ff" underline="none"><GitHub /></MLink>
+                        <MLink href="https://www.instagram.com/kcu_madison/" target="_blank" color="#333333" underline="none"><Instagram /></MLink>
+                        <MLink href="https://github.com/darlim9141/kcu5" target="_blank" color="#333333" underline="none"><GitHub /></MLink>
                     </Box>
                 </Box>
             </Drawer>      

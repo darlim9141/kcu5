@@ -191,16 +191,26 @@ export default function Gallery() {
     }, [calculateLayout]);
 
 
-    const handleItemClick = (item: StoredResult) => {
-        setSelectedResults([{
-            id: item.id,
-            imageUrl: item.imageUrl,
-            label: item.label,
-            confidence: item.confidence,
-            description: item.timestamp ? new Date(item.timestamp).toLocaleString() : undefined,
-            accessories: item.accessories
-        }]);
-        setSelectedRawResults([item.rawResult]);
+    const [initialModalIndex, setInitialModalIndex] = useState(0);
+
+    const handleItemClick = (item: any) => {
+        // Map all results to AnalysisResult format
+        const allMappedResults = results.map(r => ({
+            id: r.id,
+            imageUrl: r.imageUrl,
+            label: r.label,
+            confidence: r.confidence,
+            description: r.timestamp ? new Date(r.timestamp).toLocaleString() : undefined,
+            accessories: r.accessories
+        }));
+
+        setSelectedResults(allMappedResults);
+        setSelectedRawResults(results.map(r => r.rawResult));
+        
+        // Find index of clicked item
+        const index = results.findIndex(r => r.id === item.id);
+        setInitialModalIndex(index >= 0 ? index : 0);
+        
         setModalOpen(true);
     };
 
@@ -216,25 +226,19 @@ export default function Gallery() {
         // Add to results list immediately
         setResults(prev => [...prev, result]);
 
-        // Add to modal selection (accumulate results)
-        const mappedResult = {
-            id: result.id,
-            imageUrl: result.imageUrl,
-            label: result.label,
-            confidence: result.confidence,
-            description: result.timestamp ? new Date(result.timestamp).toLocaleString() : undefined,
-
-            accessories: result.accessories
-        };
-
-        setSelectedResults(prev => [...prev, mappedResult]);
-        setSelectedRawResults(prev => [...prev, rawResult]);
+        // We don't update selectedResults here anymore as it's generated on click
+        // But if we wanted to show the result immediately after upload, we would need to handle it.
+        // For now, the user clicks to view results.
     };
 
     const handleUploadComplete = () => {
-        // Hide overlay and show results modal
+        // Hide overlay
         setLoadingOverlayOpen(false);
-        setModalOpen(true);
+        // Optionally open modal with the new results? 
+        // For now, let's just close overlay and let user browse.
+        // If we want to auto-open:
+        // handleItemClick(results[results.length - 1]); 
+        // But results state update might be async.
     };
 
     const handleDeleteResult = async (id: string) => {
@@ -304,6 +308,7 @@ export default function Gallery() {
                 onDelete={handleDeleteResult}
                 results={selectedResults}
                 rawResults={selectedRawResults}
+                initialIndex={initialModalIndex}
             />
 
             {/* Wrapper for responsive resizing */}

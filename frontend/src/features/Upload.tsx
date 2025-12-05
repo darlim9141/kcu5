@@ -156,6 +156,17 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
+// Helper to generate UUID safely in non-secure contexts
+function generateUUID() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
   const handleUpload = async () => {
     if (!images.length) {
       setError("업로드할 이미지를 먼저 선택해 주세요.");
@@ -195,7 +206,7 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
 
         const analysisResult = response.data;
         const formattedResult = {
-          id: crypto.randomUUID(),
+          id: generateUUID(), // Use safe UUID generator
           imageUrl: item.preview,
           label: analysisResult.classification.category,
           confidence: analysisResult.classification.confidence / 100,
@@ -219,16 +230,17 @@ const Upload = forwardRef<UploadHandle, UploadProps>((props, ref) => {
 
       await Promise.all(uploadPromises);
 
-      if (props.onComplete) {
-        props.onComplete();
-      }
-
       setImages([]);
     } catch (uploadError) {
       console.error(uploadError);
+      window.alert("업로드 중 오류가 발생했습니다. 다시 시도해 주세요.");
     } finally {
       setIsUploading(false);
       setUploadProgress({});
+      // Ensure overlay closes even on error
+      if (props.onComplete) {
+        props.onComplete();
+      }
     }
   };
 

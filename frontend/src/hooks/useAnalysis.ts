@@ -1,5 +1,4 @@
-import { useState } from "react";
-import axios from "axios";
+import { useState, useEffect } from "react";
 
 export default function useAnalysis() {
     const [file, setFile] = useState(null);
@@ -14,10 +13,19 @@ export default function useAnalysis() {
             .then(res => res.json())
             .then(data => {
                 setGraphData(data);
-                console.log("loaded")
+                console.log("loaded");
             })
             .catch(error => {
                 console.error("Error loading graph data:", error);
             });
     }, []);
+
+    return {
+        file, setFile,
+        preview, setPreview,
+        loading, setLoading,
+        error, setError,
+        result, setResult,
+        graphData
+    };
 }

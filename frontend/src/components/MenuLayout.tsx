@@ -8,7 +8,7 @@ export default function MenuLayout({ children }: { children: React.ReactNode }) 
     const [open, setOpen] = useState(false);
 
     return (
-        <Box sx={{ position: "", height: "100dvh", overflow: "hidden", bgcolor: "background.default" }}>
+        <Box sx={{ position: "", minHeight: "100dvh", bgcolor: "background.default" }}>
             <AppBar color="transparent" elevation={0} position="fixed" sx={{ 
                     zIndex: (t) => t.zIndex.drawer + 1,
                     backdropFilter: "none",

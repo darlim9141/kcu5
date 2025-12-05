@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { Box, Typography, CircularProgress, IconButton, useTheme } from '@mui/material';
 import { ArrowUpward } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,7 +15,6 @@ const Statistic = () => {
         topStyle: string;
     } | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const scrollRef = useRef<HTMLDivElement>(null);
 
     const categories = ['street', 'minimal', 'casual', 'classic'];
     const categoryKo: Record<string, string> = {
@@ -108,13 +107,10 @@ const Statistic = () => {
 
     return (
         <Box 
-            ref={scrollRef}
             sx={{ 
-            height: 'calc(100% - 80px)', // Subtract top margin
-            mt: '80px', // Push down below menu
-            overflowY: 'auto',
+            minHeight: '100vh',
+            pt: '80px', // Push down below menu
             bgcolor: 'background.default', // Use theme background
-            position: 'relative' // Ensure fixed children are positioned correctly if needed
         }}>
             <Box sx={{ 
                 minHeight: '100%',
@@ -249,7 +245,7 @@ const Statistic = () => {
 
             {/* Scroll to Top Button */}
             <IconButton
-                onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                 sx={{
                     position: "fixed",
                     bottom: 24,

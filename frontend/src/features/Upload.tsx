@@ -32,7 +32,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
 const MAX_FILES = 5;
 
 // [수정 1] 환경 변수에서 주소 가져오기 (없으면 로컬호스트 사용)
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 export interface UploadHandle {
   open: () => void;

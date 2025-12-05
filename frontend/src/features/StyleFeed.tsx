@@ -3,7 +3,7 @@ import { Box, CircularProgress, useMediaQuery, useTheme } from '@mui/material';
 import axios from 'axios';
 
 // 환경 변수 사용 (배포 시 필수!)
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 interface StyleFeedProps {
     style: string;

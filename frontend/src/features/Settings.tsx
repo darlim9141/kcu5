@@ -1,6 +1,6 @@
 import { Button, Container, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper, Snackbar, Typography, Box, useTheme, ToggleButton, ToggleButtonGroup } from "@mui/material";
-import { useState, useContext } from "react";
-import { clearResults } from "../utils/storage";
+import { useState, useContext, useEffect } from "react";
+import { clearResults, getResults } from "../utils/storage";
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
@@ -11,6 +11,7 @@ import { ColorModeContext, type ColorMode } from "../App";
 export default function Settings() {
     const [openConfirm, setOpenConfirm] = useState(false);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
+    const [hasData, setHasData] = useState(false);
     const navigate = useNavigate();
     const theme = useTheme();
     const { mode, setColorMode } = useContext(ColorModeContext);
@@ -24,8 +25,17 @@ export default function Settings() {
         }
     };
 
+    useEffect(() => {
+        const checkData = async () => {
+            const results = await getResults();
+            setHasData(results.length > 0);
+        };
+        checkData();
+    }, []);
+
     const handleDeleteAll = async () => {
         await clearResults();
+        setHasData(false);
         setOpenConfirm(false);
         setSnackbarOpen(true);
         // Navigate to gallery after a short delay to show the snackbar
@@ -125,6 +135,7 @@ export default function Settings() {
                     color="error" 
                     startIcon={<DeleteForeverIcon />}
                     onClick={() => setOpenConfirm(true)}
+                    disabled={!hasData}
                     sx={{
                         borderRadius: '14px',
                         py: 1.5,
@@ -204,10 +215,13 @@ export default function Settings() {
                 message="모든 데이터가 삭제되었습니다."
                 ContentProps={{
                     sx: {
-                        bgcolor: 'rgba(0, 0, 0, 0.8)',
+                        bgcolor: theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                        color: theme.palette.mode === 'dark' ? 'white' : 'black',
                         backdropFilter: 'blur(10px)',
                         borderRadius: '12px',
-                        fontWeight: 500
+                        fontWeight: 500,
+                        boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 4px 12px rgba(0,0,0,0.15)',
+                        border: theme.palette.mode === 'dark' ? 'none' : '1px solid rgba(0,0,0,0.05)'
                     }
                 }}
             />

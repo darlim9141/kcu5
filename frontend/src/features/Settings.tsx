@@ -148,7 +148,7 @@ export default function Settings() {
                 PaperProps={{
                     sx: {
                         borderRadius: '20px',
-                        background: 'rgba(255, 255, 255, 0.9)',
+                        background: theme.palette.mode === 'dark' ? 'rgba(44, 44, 46, 0.9)' : 'rgba(255, 255, 255, 0.9)',
                         backdropFilter: 'blur(20px)',
                         boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.1)',
                         maxWidth: '400px',

@@ -214,15 +214,17 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
             <DialogContent 
                 ref={contentRef}
                 sx={{ 
-                p: 0, 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center', // Align to top to allow scrolling down
-                overflow: 'hidden', // Lock scroll when collapsed
-                position: 'relative',
-                mt: { xs: 14, md: 0 }, // Use margin instead of padding to push scroll container down
-                height: { xs: 'calc(100% - 112px)', md: '100%' } // Adjust height to account for margin
-            }}
+                    p: 0, 
+                    pt: expanded ? 4 : 0, // Add top padding when expanded
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: expanded ? 'flex-start' : 'center', // Align to top when expanded to allow scrolling
+                    overflowY: expanded ? 'auto' : 'hidden', // Enable scroll only when expanded
+                    overflowX: 'hidden',
+                    position: 'relative',
+                    mt: { xs: 14, md: 0 }, // Use margin instead of padding to push scroll container down
+                    height: { xs: 'calc(100% - 112px)', md: '100%' } // Adjust height to account for margin
+                }}
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}

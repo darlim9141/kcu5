@@ -403,7 +403,12 @@ export default function ResultsModal({ open, onClose, onDelete, results, rawResu
 
 
                                     {/* 3D Map */}
-                                    <Box sx={{ height: 500, width: '100%', mt: 2, border: '1px solid #eee', borderRadius: 1, overflow: 'hidden' }}>
+                                    <Box 
+                                        sx={{ height: 500, width: '100%', mt: 2, border: '1px solid #eee', borderRadius: 1, overflow: 'hidden' }}
+                                        onTouchStart={(e) => e.stopPropagation()}
+                                        onTouchMove={(e) => e.stopPropagation()}
+                                        onTouchEnd={(e) => e.stopPropagation()}
+                                    >
                                         <ClusterMap graphData={graphData} result={currentRawResult} />
                                     </Box>
                                 </AccordionDetails>

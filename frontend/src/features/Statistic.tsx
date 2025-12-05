@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
-import { Box, Typography, CircularProgress } from '@mui/material';
+import { useEffect, useState, useRef } from 'react';
+import { Box, Typography, CircularProgress, IconButton } from '@mui/material';
+import { ArrowUpward } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getResults, type StoredResult } from '../utils/storage';
+import StyleFeed from './StyleFeed';
 
 const Statistic = () => {
     const [loading, setLoading] = useState(true);
@@ -13,6 +15,7 @@ const Statistic = () => {
         topStyle: string;
     } | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const scrollRef = useRef<HTMLDivElement>(null);
 
     const categories = ['street', 'minimal', 'casual', 'classic'];
     const categoryKo: Record<string, string> = {
@@ -102,14 +105,18 @@ const Statistic = () => {
     }
 
     return (
-        <Box sx={{ 
+        <Box 
+            ref={scrollRef}
+            sx={{ 
             height: '100%', 
             overflowY: 'auto',
-            bgcolor: '#f5f5f7' // iOS-like background
+            bgcolor: '#f5f5f7', // iOS-like background
+            position: 'relative' // Ensure fixed children are positioned correctly if needed
         }}>
             <Box sx={{ 
                 minHeight: '100%',
                 display: 'flex', 
+                flexDirection: 'column',
                 alignItems: 'center', 
                 justifyContent: 'center',
                 pt: { xs: 10, md: 12 }, 
@@ -228,7 +235,34 @@ const Statistic = () => {
                     </Box>
                 </Box>
             </Box>
+
+            {/* Pinterest-style Style Feed */}
+            {stats?.topStyle && (
+                <Box sx={{ width: '100%', maxWidth: '1400px', mt: 8, mb: 8 }}>
+                    <StyleFeed style={stats.topStyle} />
+                </Box>
+            )}
             </Box>
+
+            {/* Scroll to Top Button */}
+            <IconButton
+                onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                sx={{
+                    position: "fixed",
+                    bottom: 24,
+                    right: 24,
+                    zIndex: (t) => t.zIndex.drawer + 2,
+                    width: 44, height: 44, borderRadius: "50%",
+                    bgcolor: "rgba(255, 255, 255, 0.5)",
+                    border: "1px solid rgba(255, 255, 255, 0.2)",
+                    backdropFilter: "blur(10px)",
+                    WebkitBackdropFilter: "blur(10px)",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                    color: '#333333'
+                }}
+            >
+                <ArrowUpward />
+            </IconButton>
         </Box>
     );
 };

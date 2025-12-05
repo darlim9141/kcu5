@@ -10,3 +10,5 @@ uvicorn
 python-multipart
 scikit-learn
 onnxruntime
+instaloader
+duckduckgo-search

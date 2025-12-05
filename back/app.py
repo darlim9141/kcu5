@@ -15,6 +15,7 @@ load_dotenv()
 register_heif_opener()
 from typing import List, Dict, Any
 from collections import Counter
+import random
 from contextlib import asynccontextmanager
 
 # Image processing libraries
@@ -34,6 +35,9 @@ import google.generativeai as genai
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
+
+# DuckDuckGo Search
+from duckduckgo_search import DDGS
 
 # === Configuration & Constants ===
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -413,6 +417,50 @@ async def predict_batch(files: List[UploadFile] = File(...)):
     except Exception as e:
         print(f"Error processing batch: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/crawl/images")
+async def crawl_images(style: str):
+    """
+    Crawl images for a specific style using DuckDuckGo.
+    Keywords: style + "fashion", "ootd", "street", "dailylook"
+    """
+    try:
+        # Construct a rich search query
+        # e.g. "street fashion ootd instagram"
+        keywords = [style, "fashion", "ootd", "dailylook", "instagram"]
+        query = " ".join(keywords)
+        
+        results = []
+        with DDGS() as ddgs:
+            # Search for images
+            # Fetch more to allow for shuffling (randomness)
+            ddg_results = ddgs.images(
+                query,
+                region="kr-kr", # Target Korean content if possible
+                safesearch="on",
+                max_results=200
+            )
+            
+            for r in ddg_results:
+                if r.get("image"):
+                    results.append({
+                        "image": r["image"],
+                        "thumbnail": r.get("thumbnail", r["image"]),
+                        "title": r.get("title", ""),
+                        "source": r.get("source", ""),
+                        "url": r.get("url", "") # Source page URL
+                    })
+        
+        # Shuffle and slice to give "fresh" feel on reload
+        random.shuffle(results)
+        results = results[:30]
+                    
+        return {"images": results}
+        
+    except Exception as e:
+        print(f"Error crawling images: {e}")
+        # Return empty list instead of erroring out to keep UI stable
+        return {"images": []}
 
 if __name__ == "__main__":
     import uvicorn
